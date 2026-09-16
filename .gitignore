@@ -1,0 +1,8 @@
+# build
+node_modules/
+dist/
+.astro/
+
+# os
+.DS_Store
+Thumbs.db

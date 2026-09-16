@@ -1,0 +1,82 @@
+Blog 个人博客项目里程碑实施计划（M0 环境配置；M1+ 随规划补入）:
+    依据：D:/Code/talk_think/cairn/personal-blog-stack.md（选型定稿：Astro 首选 + GitHub Pages via Actions；笔记模式四层方案；工具链 fnm + pnpm + Node，存储落 D 盘）
+    推进顺序：环境先行（M0）→ 项目骨架 → 最小验证路径（Astro + Tufte CSS 边注跑通单篇三栏，不做碰撞）→ 渐进补全（引用式锚定/区间分段渲染/JS 碰撞定位）；每阶段以可运行验证收尾
+    符号：☐ 待办 / ✔ 完成 / ✘ 取消；优先级 @critical / @high / @low；完成可附 @done(yy-mm-dd HH:MM)
+
+M0 本地环境工具链（fnm + pnpm + Node；存储随 scoop 落 D 盘）:
+    依据：personal-blog-stack.md「本地环境工具链」节
+        注（26-09-16 定案）：安装器 winget → scoop，工具链凡 scoop 可管一律 scoop（本机 scoop 已就位，根在 D:\Software\Scoop）；cairn 源笔记仍记 winget，以本表为准
+        注（26-09-16 实测定案，方案 A）：fnm/pnpm 清单自带 env_set，安装即接管 FNM_DIR / PNPM_HOME（实测均被改写为 apps\<app>\current，数据 persist 到 D:\Software\Scoop\persist）——放弃手工 setx 指定，由 Scoop 接管；「数据落 D 盘」诉求由 scoop 根在 D 盘天然满足；对抗无意义（scoop update 会再次覆盖）
+        注（26-09-16）：主 shell 定为 PowerShell（Git Bash 备用）；既有 scoop 版 nodejs 已卸载，防与 fnm 抢 node（hook 失效的 shell 会静默落到它）
+    定型约束（违反即返工）:
+        变量归属：FNM_DIR / PNPM_HOME 归 scoop 清单所有，勿手工 setx（update 即再覆盖）；盘位验收 = persist 落 D 盘 + 与项目同卷
+        安装器统一：工具链二进制凡 scoop 可管一律 scoop（fnm/pnpm）；Node 本体例外——按项目切版本是 fnm 的职责，不进 scoop
+        同盘约束：pnpm store 与项目必须同卷（D:\Software\Scoop ↔ D:\Code，同卷硬链接有效）；跨卷则 pnpm 硬链接机制整体失效退化为复制
+        工具纪律：npm 与 pnpm lockfile 互不相认，不可混用；npm 仅兜底
+    步骤1 安装（scoop 统一入口）:
+        ✔ scoop install fnm（1.39.0；env_set 接管 FNM_DIR → D:\Software\Scoop\apps\fnm\current，aliases/node-versions persist）@critical @done(26-09-16 22:24)
+        ✔ scoop uninstall nodejs（PATH 内既有 scoop 版 Node 与 fnm 冲突，收编）@high @done(26-09-16)
+        ✔ scoop install pnpm（12.4.2；env_set 接管 PNPM_HOME → D:\Software\Scoop\apps\pnpm\current，bin/global/store/cache/state persist + post_install；current\bin 已自动入 PATH）@critical @done(26-09-16 22:30)
+            注：均在 main bucket，无需加桶
+        ✔ fnm install 22 && fnm default 22（Node v22.23.2；落 FNM_DIR 接管路径，经 persist 存 D 盘；fnm ls 证 default 别名指向 v22.23.2）@critical @done(26-09-16 22:41)
+    步骤2 shell 接线（26-09-16 定案：不装 profile 常驻 hook，按需激活——同 direnv/nix-devShell 显式模型）:
+        ✘ profile 常驻 hook（$PROFILE / ~/.bashrc）——取消（用户定案）：代价 = node 默认不在 PATH、.nvmrc 失去本地自动消费者（CI 消费不受影响，setup-node 仍读 .nvmrc）；激活后 --use-on-cd 仍全会话生效
+        ✔ scripts/activate.ps1 会话激活脚本：fnm env --use-on-cd | iex + fnm use（读 .nvmrc，无则 default）@high @done(26-09-16 22:54)
+            注：PowerShell 脚本 env 变更同进程持久——执行一次整会话生效，无需 dot-source（bash 侧须 source/eval）
+            注：激活前提 = shell 进程环境已带 FNM_DIR（scoop env_set 后新开的终端即满足）；陈旧进程会静默兜底 %APPDATA%\fnm 空目录，症状 = fnm ls 只剩 system
+    步骤3 pnpm 存储核验（接管路径与项目同卷）:
+        ✔ store 核验（pnpm 12.4.2 实测）：store-dir = D:\Software\Scoop\apps\pnpm\current\store、cache-dir 同理——persist 接管确认，均 D 盘与项目同卷，无需手工兜底 @critical @done(26-09-16 22:50)
+        ✔ npm config set cache D:\dev\npm-cache（npm 缓存不属 pnpm/scoop 清单体系，需自理；config get 验证通过）@low @done(26-09-16 22:54)
+    步骤4 锚点文件（联动不靠人记，环境即仓库）:
+        ✔ .nvmrc 落项目根（内容一行：22）@high @done(26-09-16 22:54)
+        ☐ package.json 钉 "packageManager": "pnpm@12.4.2"（取当时稳定版；pnpm 自读自切，不依赖 corepack）+ "engines": { "node": ">=22" } @high
+            注：版本双轨——scoop 供基础入口（scoop update pnpm 升级），项目实际版本由 packageManager 字段自切；Node 25 起官方不再随附 corepack，不走 corepack 路线
+        ☐ pnpm-lock.yaml 提交入库（CI --frozen-lockfile 锁死）@high
+            注：.nvmrc 可先行落地；package.json / lockfile 随 Astro 骨架生成时补齐（骨架属 M1，届时回填勾选）
+    M0 验收:
+        ✔ fnm/pnpm 任意终端可用（scoop shims）；node 激活后 v22.23.2 / npm 10.9.8 @critical @done(26-09-16 22:54)
+        ✔ 激活工作流实测：activate.ps1 → node -v = v22.23.2（.nvmrc=22 生效；「cd 自动切」随 hook 取消改为「激活即正确」，会话内 cd 自动切仍有效）@high @done(26-09-16 22:54)
+        ✔ 接管核验：FNM_DIR / PNPM_HOME 用户级现值 = apps\<app>\current（scoop 清单所有）@high @done(26-09-16 22:50)
+        ☐ 硬链接验证：fsutil hardlink list <node_modules 内文件> 指向 pnpm store 实际路径 @low（依赖 M1 首次 pnpm install，届时回填）
+    预期行为注记（非故障，防误判）:
+        ☐ 明确不做：搬迁 pnpm 小配置文件 / %TEMP%（不值得，存储大头 = pnpm store > Node 版本 > npm 缓存 > 二进制本体；数据实体已在 D:\Software\Scoop\persist）@low
+        注：pnpm 10 起默认拦截依赖构建脚本，首次 install 后按提示 pnpm approve-builds 批准一次（Astro 栈的 esbuild/sharp 会触发），属预期行为
+        注：代码仓库勿放网盘同步目录（junction/硬链接结构是同步盘克星）；兜底 node-linker=hoisted；删项目不释放 store 空间，回收靠 pnpm store prune
+        注：D:\dev\fnm / D:\dev\pnpm-home 为 setx 遗留（setx 不建目录，无实体），注册表值已被清单改写，无需清理
+
+M1 Astro 骨架 + 三栏手感验证 + Pages 部署（day one）:
+    验收：pnpm build/preview 通过；单篇三栏（float 版边注）手感肉眼确认；push → Pages 出页面
+    依据：personal-blog-stack.md 最小验证路径；26-09-16 定案：remark-directive 源语法 / 用户站 / 部署进 M1 / 管理约定（自包含 AGENTS.md + cairn 经验杂文 + plan.todo 代 ROADMAP）
+    既定约束（文档已定案，实现按此执行、不再讨论）:
+        仓库 = 用户站 <username>.github.io（根路径部署，无 base 配置；public 或 GitHub Pro 为 Pages 前提）
+        部署 = Pages via Actions（permissions 三行 + --frozen-lockfile + concurrency），push 即发布；坑清单见 cairn 源笔记部署节
+        源语法 = remark-directive（行内 :note-m[]{} 锚 + :::note-m 容器 + :::essay 随笔）；引用式锚定/区间分段渲染留 M2
+        布局 = float 版边注（Tufte 路线，右侧栏；左侧栏 M1 留空），不做碰撞/悬停联动/回升（M3）；窄屏仅最小降级（完整响应式 M4）
+    切片1 仓库与骨架:
+        ☐ git init（main）+ .gitignore（node_modules/dist/.astro）+ 首提（plan.todo/.nvmrc/scripts）@high
+        ☐ Astro 骨架（create astro minimal；package.json 钉 packageManager pnpm@12.4.2 + engines node>=22；lockfile 入库）@critical
+        ☐ pnpm.onlyBuiltDependencies 放行 esbuild/sharp（pnpm 10+ 脚本拦截的仓库原生解法，approve-builds 非交互替代）@high
+        ☐ 切片验证：pnpm dev/build/preview 三连通过 @critical
+        ☐ M0 回填：fsutil hardlink list 验证 node_modules 实体指向 store @low
+    切片2 三栏笔记模式（手感验证）:
+        ☐ remark 插件：directive → 语义 HTML（textDirective note-m → span.note-anchor；containerDirective note-m → aside.margin-note；essay → div.essay）@critical
+        ☐ NoteLayout 三栏布局 + 全局 CSS（正文列居中 + 右侧 float 边注栏，Tufte 负 margin 技巧）@critical
+        ☐ 单篇中文演示文（3-4 条边注 + 2 段随笔，覆盖连续边注堆叠场景）@high
+        ☐ 切片验证：build 产物含 margin-note/note-anchor 结构；手感肉眼确认移交用户 @critical
+    切片3 Pages 部署:
+        ☐ deploy.yml：checkout + pnpm/action-setup@v4（自读 packageManager）+ setup-node（node-version-file .nvmrc + cache pnpm）+ install --frozen-lockfile + build + upload/deploy-pages；permissions 三行 + concurrency @critical
+        ☐ astro.config site = https://<username>.github.io @high
+        ☐ 仓库创建 + 首推 + Pages Source=Actions + 首次 Actions 绿 + 页面可达 @critical
+    收尾:
+        ☐ 管理约定落地：根 AGENTS.md（自包含 cairn 规则 + mdor 通用约束本地化：文档一致性/commit 约束；无 ROADMAP 条款）+ cairn/LOG.md + cairn/_template.md @high
+        ☐ 首篇 cairn 笔记（type 经验杂文）：技术栈决策归档（Astro/directive/用户站/scoop 接管等）@high
+        ☐ plan.todo 勾选 + commit hash 回填 + cairn/LOG 首条 @high
+
+M2 转换层（引用式锚定 + 区间分段渲染）:
+    占位：源语法定案 remark-directive；本里程碑落「容器内引用串 → 构建时正文检索定位区间」+ 重叠区间分段（每基本段挂 data-notes 多值，边界切分）+ 引用失配构建警告（fail loudly）
+
+M3 JS 碰撞布局 + 悬停联动 + 回升:
+    占位：绝对定位 + 贪心碰撞（top[i] = max(锚点top, 上一条bottom+间距)，约 80 行）；悬停点亮区间全部边注 + 其余暗化；漂移回升（阈值 + hover intent + 视口钳制）；左右分流
+
+M4 响应式 + 常规博客件:
+    占位：窄屏边注 <details> 折叠降级；首页/归档/普通文章布局；content collections 内容结构
