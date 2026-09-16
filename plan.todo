@@ -37,7 +37,7 @@ M0 本地环境工具链（fnm + pnpm + Node；存储随 scoop 落 D 盘）:
         ✔ fnm/pnpm 任意终端可用（scoop shims）；node 激活后 v22.23.2 / npm 10.9.8 @critical @done(26-09-16 22:54)
         ✔ 激活工作流实测：activate.ps1 → node -v = v22.23.2（.nvmrc=22 生效；「cd 自动切」随 hook 取消改为「激活即正确」，会话内 cd 自动切仍有效）@high @done(26-09-16 22:54)
         ✔ 接管核验：FNM_DIR / PNPM_HOME 用户级现值 = apps\<app>\current（scoop 清单所有）@high @done(26-09-16 22:50)
-        ☐ 硬链接验证：fsutil hardlink list <node_modules 内文件> 指向 pnpm store 实际路径 @low（依赖 M1 首次 pnpm install，届时回填）
+        ☐ 硬链接验证：fsutil hardlink list <node_modules 内文件> 指向 pnpm store 实际路径 @low（依赖 M1 首次 pnpm install，届时回填）→ ✔ @done(26-09-16 23:10)（实测双路径：D:\Software\Scoop\persist\pnpm\store\v11\files\... + 项目 node_modules；M0 全闭环）
     预期行为注记（非故障，防误判）:
         ☐ 明确不做：搬迁 pnpm 小配置文件 / %TEMP%（不值得，存储大头 = pnpm store > Node 版本 > npm 缓存 > 二进制本体；数据实体已在 D:\Software\Scoop\persist）@low
         注：pnpm 10 起默认拦截依赖构建脚本，首次 install 后按提示 pnpm approve-builds 批准一次（Astro 栈的 esbuild/sharp 会触发），属预期行为
@@ -48,29 +48,30 @@ M1 Astro 骨架 + 三栏手感验证 + Pages 部署（day one）:
     验收：pnpm build/preview 通过；单篇三栏（float 版边注）手感肉眼确认；push → Pages 出页面
     依据：personal-blog-stack.md 最小验证路径；26-09-16 定案：remark-directive 源语法 / 用户站 / 部署进 M1 / 管理约定（自包含 AGENTS.md + cairn 经验杂文 + plan.todo 代 ROADMAP）
     既定约束（文档已定案，实现按此执行、不再讨论）:
-        仓库 = 用户站 <username>.github.io（根路径部署，无 base 配置；public 或 GitHub Pro 为 Pages 前提）
+        仓库 = 用户站 MNFConde.github.io（根路径部署，无 base 配置；public 已满足 Pages 前提）
         部署 = Pages via Actions（permissions 三行 + --frozen-lockfile + concurrency），push 即发布；坑清单见 cairn 源笔记部署节
         源语法 = remark-directive（行内 :note-m[]{} 锚 + :::note-m 容器 + :::essay 随笔）；引用式锚定/区间分段渲染留 M2
         布局 = float 版边注（Tufte 路线，右侧栏；左侧栏 M1 留空），不做碰撞/悬停联动/回升（M3）；窄屏仅最小降级（完整响应式 M4）
     切片1 仓库与骨架:
-        ☐ git init（main）+ .gitignore（node_modules/dist/.astro）+ 首提（plan.todo/.nvmrc/scripts）@high
-        ☐ Astro 骨架（create astro minimal；package.json 钉 packageManager pnpm@12.4.2 + engines node>=22；lockfile 入库）@critical
-        ☐ pnpm.onlyBuiltDependencies 放行 esbuild/sharp（pnpm 10+ 脚本拦截的仓库原生解法，approve-builds 非交互替代）@high
-        ☐ 切片验证：pnpm dev/build/preview 三连通过 @critical
-        ☐ M0 回填：fsutil hardlink list 验证 node_modules 实体指向 store @low
+        ✔ git init（main）+ .gitignore + 首提（plan.todo/.nvmrc/scripts/activate.ps1）@high @done(26-09-16 22:47)（6c26347）
+        ✔ Astro 骨架（minimal；packageManager 钉 pnpm@12.4.2；lockfile 入库）@critical @done(26-09-16 23:10)（Astro 7.3.2，a064e15；engines 取模板 >=22.12.0）
+        ✔ 构建脚本放行 esbuild/sharp @high @done(26-09-16 23:10)（注：pnpm 12 实机制 = pnpm-workspace.yaml allowBuilds 映射；package.json 顶层 allowScripts 不被认）
+        ✔ 切片验证：pnpm dev/build/preview 三连通过 @critical @done(26-09-16 23:36)（dev 用 Astro 7 后台模式 astro dev --background/stop；本地 curl 须 --noproxy '*' 绕沙箱代理）
+        ✔ M0 回填：fsutil hardlink list 验证 node_modules 实体指向 store @low @done(26-09-16 23:10)
     切片2 三栏笔记模式（手感验证）:
-        ☐ remark 插件：directive → 语义 HTML（textDirective note-m → span.note-anchor；containerDirective note-m → aside.margin-note；essay → div.essay）@critical
-        ☐ NoteLayout 三栏布局 + 全局 CSS（正文列居中 + 右侧 float 边注栏，Tufte 负 margin 技巧）@critical
-        ☐ 单篇中文演示文（3-4 条边注 + 2 段随笔，覆盖连续边注堆叠场景）@high
-        ☐ 切片验证：build 产物含 margin-note/note-anchor 结构；手感肉眼确认移交用户 @critical
+        ✔ remark 插件：directive → 语义 HTML（textDirective note-m → span.note-anchor；containerDirective note-m → aside.margin-note；essay → div.essay）@critical @done(26-09-16 23:20)（注：Astro 7 默认 Sätteri 处理器，remark 管线需显式加装 @astrojs/markdown-remark）
+        ✔ NoteLayout 三栏布局 + 全局 CSS（正文列居中 + 右侧 float 边注栏，Tufte 负 margin 技巧；1100px 最小降级）@critical @done(26-09-16 23:20)
+        ✔ 单篇中文演示文（3 条边注 + 2 段随笔，覆盖连续边注堆叠场景）@high @done(26-09-16 23:39)（0e33e37 补第二段随笔）
+        ✔ 切片验证：build 产物含 margin-note/note-anchor/essay 结构（3+3+2）+ CSS float 规则内联确认；视觉手感待用户打开 https://mnfconde.github.io/notes-demo/ 复核 @critical @done(26-09-16 23:20)
     切片3 Pages 部署:
-        ☐ deploy.yml：checkout + pnpm/action-setup@v4（自读 packageManager）+ setup-node（node-version-file .nvmrc + cache pnpm）+ install --frozen-lockfile + build + upload/deploy-pages；permissions 三行 + concurrency @critical
-        ☐ astro.config site = https://<username>.github.io @high
-        ☐ 仓库创建 + 首推 + Pages Source=Actions + 首次 Actions 绿 + 页面可达 @critical
+        ✔ deploy.yml：checkout@v5 + pnpm/action-setup@v4（自读 packageManager）+ setup-node（node-version-file .nvmrc + cache pnpm）+ install --frozen-lockfile + build + configure-pages(enablement) + upload/deploy-pages；permissions 三行 + concurrency @critical @done(26-09-16 23:28)（6c4eed4）
+        ✔ astro.config site = https://MNFConde.github.io @high @done(26-09-16 23:15)（用户站根路径，无 base）
+        ✔ 仓库创建 + 首推 + Pages Source=Actions + 首次 Actions 绿 + 页面可达 @critical @done(26-09-16 23:33)（MNFConde.github.io public 新建 ssh 推送；Actions 41s 绿；首推自动建站默认 legacy 源且 legacy 构建失败噪音——gh api PUT pages build_type=workflow 切源；线上 root/demo 200 且 demo 含边注结构）
     收尾:
-        ☐ 管理约定落地：根 AGENTS.md（自包含 cairn 规则 + mdor 通用约束本地化：文档一致性/commit 约束；无 ROADMAP 条款）+ cairn/LOG.md + cairn/_template.md @high
-        ☐ 首篇 cairn 笔记（type 经验杂文）：技术栈决策归档（Astro/directive/用户站/scoop 接管等）@high
-        ☐ plan.todo 勾选 + commit hash 回填 + cairn/LOG 首条 @high
+        ✔ 管理约定落地：根 AGENTS.md（自包含 cairn 规则 + mdor 通用约束本地化：文档一致性/commit 约束；无 ROADMAP 条款）+ CLAUDE.md 符号链接 + cairn/LOG.md + cairn/_template.md @high @done(26-09-16 23:36)
+        ✔ 首篇 cairn 笔记（type 经验杂文）：tech-stack.md 技术栈决策归档（Astro 7/directive/用户站/scoop 接管/无 hook 等全量定案 + M1 新坑 5 条）@high @done(26-09-16 23:36)
+        ✔ plan.todo 勾选 + commit hash 回填 + cairn/LOG 首条 @high @done(26-09-16 23:45)
+    ✔ M1 技术全链路落地（26-09-16）：切片1-3 全通 + 收尾文档齐；唯一遗留 = 手感肉眼确认（用户打开 https://mnfconde.github.io/notes-demo/ 复核，通过即 M1 全量验收闭环）@done(26-09-16 23:40)
 
 M2 转换层（引用式锚定 + 区间分段渲染）:
     占位：源语法定案 remark-directive；本里程碑落「容器内引用串 → 构建时正文检索定位区间」+ 重叠区间分段（每基本段挂 data-notes 多值，边界切分）+ 引用失配构建警告（fail loudly）
