@@ -24,6 +24,10 @@ authoring_mode: ai_generated
 - **工具链 fnm + pnpm，安装器 scoop**：scoop 清单 env_set 接管 FNM_DIR/PNPM_HOME（方案 A，放弃手工指定——对抗会在 update 时被再次覆盖）；数据经 persist 落 D 盘，store 与项目同卷硬链接实测有效
 - **无 profile 常驻 hook**：按需激活（direnv/nix-devShell 模型）——PowerShell `scripts/activate.ps1` 一次整会话生效；代价 = .nvmrc 失去本地自动消费者（CI 消费不受影响）
 - **管理约定**：cairn 规则自包含于根 AGENTS.md（不依赖外部 skill）；条目类型固定经验杂文；plan.todo 代 ROADMAP；决策入 cairn 不设 decisions.md
+- **皮肤配置化（26-09-17）**：颜色/字体/三栏尺寸/间距全令牌化进 `src/styles/theme.css`（唯一外观入口，其余样式无裸值）；M3 JS 布局经 getComputedStyle 读同一批令牌
+- **选区方案（26-09-17）**：边注 `user-select:none`（拖选/Ctrl+A 只取正文含随笔）；M3 补 hover 复制单条 + 程序化全选边注——拖拽级按栏隔离是浏览器原生限制（选区跟 DOM 序），`user-select: contain` 跨浏览器不可押注
+- **字体策略（26-09-17）**：`font-display: swap`（回退即时渲染、加载完自动切换、失败停回退）；方向 = 自托管分片（unicode-range 按需下载、随 Pages 同源分发），字体选型待用户给出
+- **亮暗双主题（26-09-17）**：`prefers-color-scheme` 跟系统 + `data-theme` 手动覆盖位；切换按钮 UI 随 M4 站点件
 
 ## 经验
 
