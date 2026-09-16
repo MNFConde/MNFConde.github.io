@@ -73,11 +73,20 @@ M1 Astro 骨架 + 三栏手感验证 + Pages 部署（day one）:
         ✔ plan.todo 勾选 + commit hash 回填 + cairn/LOG 首条 @high @done(26-09-16 23:45)
     ✔ M1 技术全链路落地（26-09-16）：切片1-3 全通 + 收尾文档齐；唯一遗留 = 手感肉眼确认（用户打开 https://mnfconde.github.io/notes-demo/ 复核，通过即 M1 全量验收闭环）@done(26-09-16 23:40)
 
+M1.5 主题与选区基座（26-09-17 定案，插队于 M2 之前）:
+    验收：外观改动只需动 theme.css；拖选/Ctrl+A 只取正文（含随笔、不含边注）；暗色跟随系统
+    既定约束:
+        皮肤与结构分离：颜色/字体/三栏尺寸/间距/随笔样式全部令牌化进 src/styles/theme.css，其余源文件无裸值——此后用户描述外观 → 只改 theme.css → push 自动上线
+        M3 JS 布局经 getComputedStyle 读同一批尺寸令牌，不硬编码
+        亮暗 = :root 亮色 + prefers-color-scheme 暗色（跟系统）+ data-theme 手动覆盖位（切换按钮 UI 随 M4 站点件）
+        字体 = font-display: swap 策略（网差停在回退、加载完自动切换）；自托管分片（unicode-range 按需下载）待字体选型后落
+    ✔ theme.css 令牌抽离（含暗色结构 + swap 字体占位）+ .margin-note user-select:none @high @done(26-09-17 00:29)（产物验证：user-select/dark 媒询/data-theme 覆盖位齐）
+
 M2 转换层（引用式锚定 + 区间分段渲染）:
     占位：源语法定案 remark-directive；本里程碑落「容器内引用串 → 构建时正文检索定位区间」+ 重叠区间分段（每基本段挂 data-notes 多值，边界切分）+ 引用失配构建警告（fail loudly）
 
 M3 JS 碰撞布局 + 悬停联动 + 回升:
-    占位：绝对定位 + 贪心碰撞（top[i] = max(锚点top, 上一条bottom+间距)，约 80 行）；悬停点亮区间全部边注 + 其余暗化；漂移回升（阈值 + hover intent + 视口钳制）；左右分流
+    占位：绝对定位 + 贪心碰撞（top[i] = max(锚点top, 上一条bottom+间距)，约 80 行，尺寸经 getComputedStyle 读 theme.css 令牌）；悬停点亮区间全部边注 + 其余暗化；漂移回升（阈值 + hover intent + 视口钳制）；左右分流；交互新增（26-09-17 定案）：单条边注 hover 复制按钮 + 程序化全选边注（Selection API，双击侧栏空白触发）——拖拽级按栏隔离为浏览器原生限制（选区跟 DOM 序），以 user-select:none + 程序化选择组合替代
 
 M4 响应式 + 常规博客件:
     占位：窄屏边注 <details> 折叠降级；首页/归档/普通文章布局；content collections 内容结构

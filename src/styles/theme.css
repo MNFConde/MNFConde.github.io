@@ -1,0 +1,55 @@
+/* ============================================================
+   主题令牌 —— 唯一的皮肤配置文件
+   约定：改外观只动这里；其余样式文件只消费变量、不出现裸值。
+   布局尺寸同时被 M3 JS 布局经 getComputedStyle 读取，勿改名。
+   ============================================================ */
+
+:root {
+  color-scheme: light;
+
+  /* —— 版式尺寸 —— */
+  --main-width: 42rem;      /* 正文列宽 */
+  --margin-width: 16rem;    /* 边注栏宽 */
+  --gutter: 3rem;           /* 正文列与边注栏间距 */
+  --page-pad-y: 3rem;       /* 页面上下留白 */
+
+  /* —— 字体（font-display: swap 策略：加载完自动切换，网差停在回退）——
+     自托管分片字体占位：字体选型后在 public/fonts/ 落 woff2 分片并在此补 @font-face */
+  --font-serif: 'Source Han Serif SC', 'Noto Serif CJK SC', 'Songti SC', SimSun, Georgia, serif;
+  --font-size-base: 1.0625rem;
+  --line-height-base: 1.9;
+  --font-size-note: 0.86rem;
+  --font-size-essay: 0.95rem;
+
+  /* —— 亮色画布 —— */
+  --ink: #23231f;           /* 正文墨色 */
+  --ink-soft: #5f584b;      /* 次级文字（边注/随笔/引用） */
+  --paper: #fbfaf5;         /* 纸面 */
+  --line: #ddd6c6;          /* 分隔线 */
+  --accent: #8c3630;        /* 强调色（锚点/链接/随笔竖线） */
+  --essay-bg: #f2efe3;      /* 随笔底色 */
+}
+
+/* —— 暗色画布（跟系统；维护提示：改暗色时与下方 data-theme 块同步）—— */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+    --ink: #d6d1c4;
+    --ink-soft: #9c9585;
+    --paper: #191815;
+    --line: #3a362d;
+    --accent: #c9766a;
+    --essay-bg: #232219;
+  }
+}
+
+/* —— 手动覆盖位（切换按钮 UI 随 M4 站点件落地；写 localStorage 后置 data-theme）—— */
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --ink: #d6d1c4;
+  --ink-soft: #9c9585;
+  --paper: #191815;
+  --line: #3a362d;
+  --accent: #c9766a;
+  --essay-bg: #232219;
+}

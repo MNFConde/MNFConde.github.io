@@ -1,34 +1,19 @@
-/* 笔记模式三栏布局（M1 float 版）：正文列居中，边注 float 进右侧栏。
-   左侧栏 M1 留空；窄屏最小降级，完整响应式属 M4。 */
-:root {
-  --main-width: 42rem;
-  --margin-width: 16rem;
-  --gutter: 3rem;
-  --ink: #23231f;
-  --ink-soft: #5f584b;
-  --paper: #fbfaf5;
-  --line: #ddd6c6;
-  --accent: #8c3630;
-  --essay-bg: #f2efe3;
-}
-
-* {
-  box-sizing: border-box;
-}
+/* 结构样式：只消费 theme.css 的令牌，不出现裸值（外观改动一律去 theme.css） */
+@import './theme.css';
 
 body {
   margin: 0;
   background: var(--paper);
   color: var(--ink);
-  font-family: 'Source Han Serif SC', 'Noto Serif CJK SC', 'Songti SC', SimSun, Georgia, serif;
-  font-size: 1.0625rem;
-  line-height: 1.9;
+  font-family: var(--font-serif);
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-base);
 }
 
 .note-layout {
   max-width: calc(var(--main-width) + 2 * (var(--margin-width) + var(--gutter)));
   margin: 0 auto;
-  padding: 3rem 1rem 6rem;
+  padding: var(--page-pad-y) 1rem 6rem;
 }
 
 .note-main {
@@ -62,11 +47,15 @@ body {
   width: var(--margin-width);
   margin-right: calc(-1 * (var(--margin-width) + var(--gutter)));
   margin-bottom: 1rem;
-  font-size: 0.86rem;
+  font-size: var(--font-size-note);
   line-height: 1.7;
   color: var(--ink-soft);
   border-top: 1px solid var(--line);
   padding-top: 0.45rem;
+
+  /* 选区隔离：拖选/Ctrl+A 只取正文（含随笔），边注不入场 */
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 /* 被标注词句：词句级锚点 */
@@ -80,7 +69,7 @@ body {
   padding: 0.85rem 1.15rem;
   background: var(--essay-bg);
   border-left: 3px solid var(--accent);
-  font-size: 0.95rem;
+  font-size: var(--font-size-essay);
   color: var(--ink-soft);
 }
 
