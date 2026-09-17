@@ -5,7 +5,7 @@ summary: "个人博客技术栈决策归档：Astro 7 + 用户站 GitHub Pages�
 tags: [Astro, GitHub-Pages, 边注, sidenotes, remark-directive, fnm, pnpm, scoop]
 contains: [decision, experience]
 created: "2026-09-16"
-updated: "2026-09-16"
+updated: "2026-09-17"
 related: []
 authoring_mode: ai_generated
 ---
@@ -31,6 +31,10 @@ authoring_mode: ai_generated
 - **引用式锚定形态（26-09-17 M2 定案）**：`:::note-m{#id}` 容器首块 blockquote = 引用串，渲染文本空白折叠后检索定位（零匹配/多匹配 strict 构建失败）；行内 `:note-m[]{#id}` 包裹并存且零检索直定位
 - **区间分段算法（26-09-17 M2 定案）**：段落规范化文本按标注边界切基本段平铺（无间隙光标模型——按「标注段+间隙」分发会在跨段断点处丢/重文本，已实证弃用）；标注段 span[data-notes=多值] 包裹、相邻同注合并、相邻文本节点归并；行内元素被切开时递归克隆、id 归首片
 - **id 命名空间（26-09-17 M2 定案）**：行内锚 id 与 aside data-anchor 同值是配对非重复；查重分两张表（spanIds / asideIds）
+- **M3 布局模型（26-09-17 定案）**：碰撞排程抽纯函数 layoutNotes（无 DOM 依赖、vitest 直测）——双链贪心 top=max(锚点, 链底+gap)，左右分流择 drift 小者（平局右）；漂移回升钳在 [锚点, 静态位] 区间内、视口上沿越过即随文档离场（**回升窗口天然 ≤ gap**，全程 sticky 会让边注一路跟到页尾，不做）；hover 冻结项 bottom 继续占位防指针脱离
+- **桌面/移动模式切换（26-09-17 定案）**：断点驱动非手动配置——桌面（>1100px）平铺、窄屏聚焦模式归 M4（竖屏平铺挤压正文）；引擎挂/摘 data-notes-float 属性即模式开关，断点单点在 JS（CSS 1100px 降级与 matchMedia 配对，改动两处同步）
+- **全选边注实现（26-09-17 定案）**：Selection range 是连续的、无法跨离散元素——边注 DOM 序穿插正文，直接 range 会把中间正文选进去；解法 = 边注文本收集进屏外克隆容器再对容器 selectNodeContents；`user-select:none` 不拦截程序化选区
+- **悬停联动基建（26-09-17 定案）**：id↔元素映射缓存 + is-active/has-focus 高亮管理 + layoutEl 单点事件分发，独立于定位模式（内联降级下同样工作）；M4 聚焦模式的 click 联动复用同一套
 
 ## 经验
 
@@ -42,7 +46,9 @@ authoring_mode: ai_generated
 - **M2 坑：`git add src/` 漏掉根目录配置**——astro.config.mjs 不在 src/ 下，首推后 CI 构建无分段而本地正常（本地文件是新的），4fcf05e→6bbb046 补交修复；纪律 = 提交前 `git status --short` 全览，根目录配置文件（astro.config / AGENTS.md / plan.todo）显式入 add 清单
 - **M2 坑：CI 与本地构建产物不一致的排查路径**——diff 线上与本地产物字节（fold -w120 后 diff），先确认「线上是不是这个提交的构建」再怀疑环境；本次实为漏提交而非环境差异
 - 沙箱/代理环境下 curl localhost 须 `--noproxy '*'`，否则 502 假象
+- **M3 坑：程序化 dispatchEvent(mouseover) 不触发 CSS `:hover` 伪类**——getComputedStyle 读到的 visibility/样式不变，自动化验证 hover 态须用真实鼠标事件（browser-use 的 cua.move）
+- **M3 坑：双链分流改变了测试场景设计**——左链一空，第二条边注即分流离右链，「右链下推/回升」场景必须双链都占（至少 3 条密集边注）才成立；写布局单测先推演分流，别按单链直觉定期望值
 
 ## 开放问题
 
-- 无阻塞项；M2（引用式锚定 + 区间分段）、M3（JS 碰撞 + 悬停联动 + 回升）、M4（响应式 + 常规博客件）排期见 plan.todo
+- 无阻塞项；M4（窄屏聚焦模式：折叠条 + 居中模态 + 聚光灯 + 预览回填；随笔样式方向 A；常规博客件）排期见 plan.todo

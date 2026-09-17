@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Blog —— 个人博客（Astro 7 + GitHub Pages 用户站 [MNFConde.github.io](https://MNFConde.github.io)，push 即发布）。当前状态：**M2 落地**——M1 工具链与骨架、M1.5 主题令牌（theme.css 唯一外观入口 + 暗色跟系统）、M2 转换层（引用式锚定检索 + 区间分段渲染 span[data-notes]，vitest 14 绿入 CI）全通；按 plan.todo 推进（plan.todo 为唯一规划/里程碑事实源，取代 ROADMAP）。
+Blog —— 个人博客（Astro 7 + GitHub Pages 用户站 [MNFConde.github.io](https://MNFConde.github.io)，push 即发布）。当前状态：**M3 落地**——M1 工具链与骨架、M1.5 主题令牌（theme.css 唯一外观入口 + 暗色跟系统）、M2 转换层（引用式锚定检索 + 区间分段渲染 span[data-notes]）、M3 桌面边注引擎（碰撞定位 + 左右分流 + 漂移回升 + 悬停联动 + 复制/全选，vitest 29 绿入 CI）全通；按 plan.todo 推进（plan.todo 为唯一规划/里程碑事实源，取代 ROADMAP）。
 
 > 本仓库的 cairn 规则**自包含于本文件**，不依赖外部 skill；`cairn/` 是项目知识层，条目类型固定「经验杂文」。
 
