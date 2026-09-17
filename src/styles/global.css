@@ -63,6 +63,12 @@ body {
   color: var(--accent);
 }
 
+/* 标注段（M2 data-notes；M3 悬停联动的数据载体） */
+.note-main [data-notes] {
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  border-bottom: 1px dotted color-mix(in srgb, var(--accent) 45%, transparent);
+}
+
 /* 随笔：主栏内样式区隔块 */
 .essay {
   margin: 1.4rem 0 1.6rem;
