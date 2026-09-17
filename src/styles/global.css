@@ -89,6 +89,22 @@ body {
   border-bottom-color: color-mix(in srgb, var(--accent) 70%, transparent);
 }
 
+/* —— M3 切片3 click 选中态：被点边注 pinned 为浮层，飞到文本最近处 —— */
+.note-main [data-notes],
+.note-main .note-anchor,
+.note-layout .margin-note {
+  cursor: pointer;
+}
+
+.margin-note.is-pinned {
+  box-sizing: border-box;
+  z-index: 30;
+  background: var(--paper);
+  border-top: 2px solid var(--accent);
+  padding: 0.55rem 0.85rem;
+  box-shadow: 0 10px 28px color-mix(in srgb, var(--ink) 22%, transparent);
+}
+
 /* —— M3 交互：边注复制按钮（桌面 hover 浮现；窄屏内联模式无此交互）—— */
 .note-copy {
   position: absolute;

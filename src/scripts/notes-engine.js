@@ -1,17 +1,21 @@
 /**
- * M3 桌面边注引擎（>1100px 平铺形态）。
+ * 边注交互引擎（桌面 >1100px 平铺；窄屏行为见 M4 聚焦模式切片）。
  *
- * 职责：断点激活 → 批量测量（锚点位/高度缓存）→ layoutNotes 纯函数排程 → 批量写 top/side。
- * 滚动路径零布局读取：锚点位与高度仅在 measure() 刷新（激活/resize/字体就绪/load），
- * scroll 只读 scrollY 做回升修正，rAF 节流。窄屏（≤1100px）摘除模式属性，回落 CSS 内联降级。
+ * 职责：
+ *  - 碰撞布局：断点激活 → 批量测量（锚点位/高度缓存）→ layoutNotes 纯函数排程 → 批量写 top/side。
+ *    滚动路径零布局读取（scroll 只读 scrollY），rAF 节流。
+ *  - click 联动状态机（M3 切片3）：点击正文区间/边注 → 两端点亮 + 对应边注 pinned 浮层
+ *    （top 临时改写为 max(锚点, 视口上沿+pad)，z-index/阴影浮于其它边注之上，其余边注不动）；
+ *    点击空白/Escape 清除、点击另一目标切换、再次点击同一目标取消。窄屏聚焦模式（M4）复用
+ *    同一状态机，只换渲染分支。
  *
  * 断点 1101px 与 global.css 的 1100px 降级断点配对，改动须两处同步。
  */
 import { layoutNotes } from './notes-layout.js';
 
 const MQ_DESKTOP = '(min-width: 1101px)';
-const VP_PAD = 24;        // 回升时边注距视口上沿的缓冲（px）
-const DRIFT_THRESHOLD = 96; // drift 超过此值才参与视口回升（px，约 4 行边注文字）
+const VP_PAD = 24;          // 视口上沿缓冲（px）
+const DRIFT_THRESHOLD = 96; // drift 超过此值才参与视口回升（px）
 
 export function initNotesEngine() {
   const layoutEl = document.querySelector('.note-layout');
@@ -27,11 +31,12 @@ export function initNotesEngine() {
     height: 0,
     top: 0,
     side: 'right',
-    frozen: false,
   }));
   const base = { top: 0 }; // .note-main 的文档 top（absolute 定位原点）
   let active = false;
   let gap = 16;
+  let activeIds = new Set();
+  let pinnedIds = new Set();
 
   // 令牌换算：--note-gap 等 rem 值 → px（承 M1.5 约束：尺寸只出自 theme.css）
   function tokenPx(name, fallback) {
@@ -68,12 +73,7 @@ export function initNotesEngine() {
   function relayout({ withViewport = false } = {}) {
     if (!active) return;
     const plan = layoutNotes(
-      model.map((m) => ({
-        anchorTop: m.anchorTop,
-        height: m.height,
-        frozenTop: m.frozen ? m.top : undefined,
-        frozenSide: m.side,
-      })),
+      model.map((m) => ({ anchorTop: m.anchorTop, height: m.height })),
       {
         gap,
         viewportTop: withViewport ? window.scrollY - base.top - VP_PAD : null,
@@ -81,6 +81,18 @@ export function initNotesEngine() {
       }
     );
     apply(plan);
+  }
+
+  // pinned 浮层位：钳在锚点与视口上沿之间，随滚动跟随（召唤态的 sticky，
+  // 与常驻布局「不追踪视口」定案不冲突——显式召唤 ≠ 常驻几何）
+  function updatePinned() {
+    if (!active || pinnedIds.size === 0) return;
+    const vpTop = window.scrollY - base.top + VP_PAD;
+    for (const m of model) {
+      if (pinnedIds.has(m.id)) {
+        m.el.style.top = `${Math.round(Math.max(m.anchorTop, vpTop))}px`;
+      }
+    }
   }
 
   function activate() {
@@ -95,6 +107,7 @@ export function initNotesEngine() {
   function deactivate() {
     if (!active) return;
     active = false;
+    clearSelection();
     layoutEl.removeAttribute('data-notes-float');
     for (const m of model) {
       m.el.style.removeProperty('top');
@@ -116,17 +129,22 @@ export function initNotesEngine() {
       });
     };
   };
-  const onScroll = rafWrap(() => relayout({ withViewport: true }));
+  const onScroll = rafWrap(() => {
+    if (pinnedIds.size > 0) updatePinned(); // 选中期间其余边注冻结在静态位，只跟随 pinned
+    else relayout({ withViewport: true });
+  });
   const onResize = rafWrap(() => {
     if (!active) return;
     gap = tokenPx('--note-gap', 16);
     measure();
     relayout();
+    updatePinned();
   });
   const remeasure = rafWrap(() => {
     if (!active) return;
     measure();
     relayout();
+    updatePinned();
   });
 
   window.addEventListener('scroll', onScroll, { passive: true });
@@ -134,66 +152,60 @@ export function initNotesEngine() {
   window.addEventListener('load', remeasure);
   document.fonts?.ready.then(remeasure);
 
-  // —— 悬停联动基建（M3；M4 聚焦模式的 click 联动复用同一套映射与高亮管理）——
-  // id ↔ 正文元素双向映射：行内锚（含分段切片）+ 引用式区间段
-  const anchorCache = new Map();
-  const anchorsOf = (id) => {
-    if (!anchorCache.has(id)) {
-      anchorCache.set(
-        id,
-        [...mainEl.querySelectorAll(`.note-anchor[id="${id}"], [data-notes~="${id}"]`)]
-      );
-    }
-    return anchorCache.get(id);
-  };
-
+  // —— 高亮管理（映射/管理基建，桌面 pinned 与窄屏模态两分支共用）——
   function setActive(ids) {
+    activeIds = ids;
     layoutEl.classList.add('has-focus');
     for (const m of model) m.el.classList.toggle('is-active', ids.has(m.id));
     for (const el of layoutEl.querySelectorAll('[data-notes], .note-anchor')) {
-      const elIds = el.dataset.notes
-        ? el.dataset.notes.split(/\s+/)
-        : [el.id];
+      const elIds = el.dataset.notes ? el.dataset.notes.split(/\s+/) : [el.id];
       el.classList.toggle('is-active', elIds.some((x) => ids.has(x)));
     }
   }
 
-  function clearActive() {
-    layoutEl.classList.remove('has-focus');
-    for (const el of layoutEl.querySelectorAll('.is-active')) el.classList.remove('is-active');
-  }
-
-  function setFrozen(ids, on) {
-    let changed = false;
-    for (const m of model) {
-      if (ids.has(m.id) && m.frozen !== on) {
-        m.frozen = on;
-        changed = true;
-      }
+  function clearSelection() {
+    if (activeIds.size === 0 && pinnedIds.size === 0) return;
+    activeIds = new Set();
+    pinnedIds.clear();
+    layoutEl.classList.remove('has-focus', 'has-pin');
+    for (const el of layoutEl.querySelectorAll('.is-active, .is-pinned')) {
+      el.classList.remove('is-active', 'is-pinned');
     }
-    if (changed && !on) relayout({ withViewport: true });
+    if (active) relayout(); // pinned 恢复静态排程位；其余边注全程未动
   }
 
-  const hoverIds = (el) => {
-    const note = el.closest('.margin-note');
+  const targetIds = (el) => {
+    const note = el.closest?.('.margin-note');
     if (note) return new Set([note.dataset.anchor]);
-    const t = el.closest('[data-notes], .note-anchor');
+    const t = el.closest?.('[data-notes], .note-anchor');
     if (!t) return null;
     return new Set(t.dataset.notes ? t.dataset.notes.split(/\s+/) : [t.id]);
   };
 
-  layoutEl.addEventListener('mouseover', (e) => {
-    const ids = hoverIds(e.target);
-    if (!ids) return;
+  const sameSet = (a, b) => a.size === b.size && [...a].every((x) => b.has(x));
+
+  function applySelection(ids) {
     setActive(ids);
-    setFrozen(ids, true);
+    if (!active) return; // 窄屏（M4 聚焦分支）只高亮，浮层属于桌面形态
+    pinnedIds = new Set([...ids].filter((id) => model.some((m) => m.id === id)));
+    layoutEl.classList.add('has-pin');
+    for (const m of model) m.el.classList.toggle('is-pinned', pinnedIds.has(m.id));
+    updatePinned();
+  }
+
+  layoutEl.addEventListener('click', (e) => {
+    if (e.target.closest?.('.note-copy')) return; // 复制按钮是独立点击目标
+    if (getSelection()?.toString()) return; // 拖选文本不是选中意图
+    const ids = targetIds(e.target);
+    if (!ids) return;
+    if (sameSet(ids, activeIds)) clearSelection();
+    else applySelection(ids);
   });
-  layoutEl.addEventListener('mouseout', (e) => {
-    if (!hoverIds(e.target)) return;
-    const r = e.relatedTarget;
-    if (r && hoverIds(r)) return; // 仍在任一锚点/边注内部移动，不清除
-    clearActive();
-    setFrozen(hoverIds(e.target), false);
+  document.addEventListener('click', (e) => {
+    if (!targetIds(e.target)) clearSelection();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') clearSelection();
   });
 
   // —— 交互：单条边注 hover 复制 + 双击侧栏空白全选边注 ——
@@ -259,7 +271,12 @@ export function initNotesEngine() {
     sel.removeAllRanges();
     sel.addRange(range);
     setActive(new Set(model.map((m) => m.id)));
-    setTimeout(() => clearActive(), 1600);
+    setTimeout(() => {
+      if (cloneBox) {
+        clearClone();
+        clearSelection();
+      }
+    }, 1600);
   });
   document.addEventListener(
     'click',
