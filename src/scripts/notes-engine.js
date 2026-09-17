@@ -134,5 +134,67 @@ export function initNotesEngine() {
   window.addEventListener('load', remeasure);
   document.fonts?.ready.then(remeasure);
 
+  // —— 悬停联动基建（M3；M4 聚焦模式的 click 联动复用同一套映射与高亮管理）——
+  // id ↔ 正文元素双向映射：行内锚（含分段切片）+ 引用式区间段
+  const anchorCache = new Map();
+  const anchorsOf = (id) => {
+    if (!anchorCache.has(id)) {
+      anchorCache.set(
+        id,
+        [...mainEl.querySelectorAll(`.note-anchor[id="${id}"], [data-notes~="${id}"]`)]
+      );
+    }
+    return anchorCache.get(id);
+  };
+
+  function setActive(ids) {
+    layoutEl.classList.add('has-focus');
+    for (const m of model) m.el.classList.toggle('is-active', ids.has(m.id));
+    for (const el of layoutEl.querySelectorAll('[data-notes], .note-anchor')) {
+      const elIds = el.dataset.notes
+        ? el.dataset.notes.split(/\s+/)
+        : [el.id];
+      el.classList.toggle('is-active', elIds.some((x) => ids.has(x)));
+    }
+  }
+
+  function clearActive() {
+    layoutEl.classList.remove('has-focus');
+    for (const el of layoutEl.querySelectorAll('.is-active')) el.classList.remove('is-active');
+  }
+
+  function setFrozen(ids, on) {
+    let changed = false;
+    for (const m of model) {
+      if (ids.has(m.id) && m.frozen !== on) {
+        m.frozen = on;
+        changed = true;
+      }
+    }
+    if (changed && !on) relayout({ withViewport: true });
+  }
+
+  const hoverIds = (el) => {
+    const note = el.closest('.margin-note');
+    if (note) return new Set([note.dataset.anchor]);
+    const t = el.closest('[data-notes], .note-anchor');
+    if (!t) return null;
+    return new Set(t.dataset.notes ? t.dataset.notes.split(/\s+/) : [t.id]);
+  };
+
+  layoutEl.addEventListener('mouseover', (e) => {
+    const ids = hoverIds(e.target);
+    if (!ids) return;
+    setActive(ids);
+    setFrozen(ids, true);
+  });
+  layoutEl.addEventListener('mouseout', (e) => {
+    if (!hoverIds(e.target)) return;
+    const r = e.relatedTarget;
+    if (r && hoverIds(r)) return; // 仍在任一锚点/边注内部移动，不清除
+    clearActive();
+    setFrozen(hoverIds(e.target), false);
+  });
+
   onMq();
 }

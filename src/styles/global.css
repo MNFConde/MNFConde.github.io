@@ -69,6 +69,26 @@ body {
   border-bottom: 1px dotted color-mix(in srgb, var(--accent) 45%, transparent);
 }
 
+/* —— M3 悬停联动：hover 区间/边注 → 两端点亮，其余暗化 —— */
+.margin-note {
+  transition: opacity 0.15s ease;
+}
+
+.note-layout.has-focus .margin-note:not(.is-active) {
+  opacity: var(--dim-opacity);
+}
+
+.note-layout.has-focus .note-main [data-notes]:not(.is-active) {
+  background: transparent;
+  border-bottom-color: color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+.note-main [data-notes].is-active,
+.note-anchor.is-active {
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  border-bottom-color: color-mix(in srgb, var(--accent) 70%, transparent);
+}
+
 /* 随笔：主栏内样式区隔块 */
 .essay {
   margin: 1.4rem 0 1.6rem;
