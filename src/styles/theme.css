@@ -14,6 +14,12 @@
   --page-pad-y: 3rem;       /* 页面上下留白 */
   --note-gap: 1rem;         /* 边注纵向堆叠间距（M3 布局引擎读取） */
   --dim-opacity: 0.35;      /* 悬停联动时非关联边注的暗化不透明度（M3） */
+  --radius: 8px;            /* 卡片圆角（随笔/折叠条/模态） */
+
+  /* —— 召唤态层次（M3 pinned / M4 模态；黑系阴影亮暗通用，避免 ink 在暗色下发白）—— */
+  --scrim: rgb(15 14 12 / 0.24);                    /* 聚光灯遮罩 */
+  --shadow-card: 0 10px 28px rgb(15 14 12 / 0.22);  /* pinned 浮层阴影 */
+  --shadow-modal: 0 18px 48px rgb(15 14 12 / 0.3);  /* 窄屏居中模态阴影 */
 
   /* —— 字体（font-display: swap 策略：加载完自动切换，网差停在回退）——
      自托管分片字体占位：字体选型后在 public/fonts/ 落 woff2 分片并在此补 @font-face */

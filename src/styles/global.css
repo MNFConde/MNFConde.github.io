@@ -102,7 +102,7 @@ body {
   background: var(--paper);
   border-top: 2px solid var(--accent);
   padding: 0.55rem 0.85rem;
-  box-shadow: 0 10px 28px color-mix(in srgb, var(--ink) 22%, transparent);
+  box-shadow: var(--shadow-card);
 }
 
 /* —— M3 交互：边注复制按钮（桌面 hover 浮现；窄屏内联模式无此交互）—— */
@@ -165,19 +165,76 @@ blockquote {
   color: var(--ink-soft);
 }
 
-/* 窄屏最小降级：边注回落主栏内联 */
+/* 窄屏：聚焦模式（M4）——边注折叠条 + click 居中模态 + 聚光灯，取代内联降级 */
 @media (max-width: 1100px) {
   .note-layout {
     max-width: var(--main-width);
   }
 
+  /* 折叠条：高度一致（预览 2 行截断），点击展开模态 */
   .margin-note {
     float: none;
     width: auto;
     margin: 0.9rem 0;
-    border-top: none;
-    border-left: 3px solid var(--line);
-    padding: 0.35rem 0.85rem;
+    border: none;
+    padding: 0.55rem 0.9rem;
+    background: color-mix(in srgb, var(--accent) 5%, transparent);
+    border-radius: var(--radius);
+  }
+
+  .margin-note > :not(.note-preview) {
+    display: none; /* 折叠：只显示预览条 */
+  }
+
+  .note-preview {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+    min-height: 2.75em; /* 2 行行高，保证折叠条高度一致 */
+    font-size: var(--font-size-note);
+    line-height: 1.55;
+    color: var(--ink-soft);
+  }
+
+  /* 居中模态：展开体（border-box + 百分比宽——100vw 含滚动条、content-box 加 padding 会溢出视口） */
+  .margin-note.is-modal {
+    box-sizing: border-box;
+    position: fixed;
+    inset: 0;
+    margin: auto;
+    width: min(34rem, calc(100% - 2rem));
+    height: fit-content;
+    max-height: 72vh;
+    overflow: auto;
+    z-index: 60;
+    background: var(--paper);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-modal);
+    padding: 1rem 1.2rem;
+    cursor: default;
+  }
+
+  .margin-note.is-modal > :not(.note-preview) {
+    display: revert; /* 展开时恢复正文 */
+  }
+
+  .margin-note.is-modal .note-preview {
+    display: none;
+  }
+
+  /* 触屏无 hover：模态内复制按钮常显 */
+  .margin-note.is-modal .note-copy {
+    display: block;
+    visibility: visible;
+  }
+
+  /* 聚光灯遮罩 */
+  .note-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    background: var(--scrim);
   }
 }
 

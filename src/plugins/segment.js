@@ -258,10 +258,22 @@ const classArrayOf = (el) => {
   return Array.isArray(c) ? c : typeof c === 'string' ? c.split(/\s+/).filter(Boolean) : [];
 };
 
+/** 节点内全部文本（规范化空白折叠），用于行内锚词句 → 边注预览回填 */
+const spanTextOf = (el) => {
+  let out = '';
+  const collect = (n) => {
+    if (n.type === 'text') out += n.value;
+    else for (const c of n.children ?? []) collect(c);
+  };
+  collect(el);
+  return out.replace(/\s+/g, ' ').trim();
+};
+
 /**
  * rehype 接线：收集边注容器的 data-quote-anchor → 在段落规范化文本中检索定位
  * （边注内部不参与检索；零匹配/多匹配 strict 下构建失败）→ aside 挂 data-anchor、
- * 摘除暂存属性 → 命中段落做区间分段。重复 note id 视为配置错误。
+ * 摘除暂存属性、回填 data-preview（M4 折叠条预览：引用串或行内锚词句）→
+ * 命中段落做区间分段。重复 note id 视为配置错误。
  */
 export function rehypeNoteSegment(options = {}) {
   const strict = options.strict !== false;
@@ -319,8 +331,18 @@ export function rehypeNoteSegment(options = {}) {
       delete aside.properties['data-quote-anchor'];
       delete aside.properties.dataQuoteAnchor;
       aside.properties['data-anchor'] = id;
+      aside.properties['data-preview'] = quote; // M4 折叠条预览：引用式锚用引用串
       if (!rangesByP.has(hit.p)) rangesByP.set(hit.p, []);
       rangesByP.get(hit.p).push({ start: hit.start, end: hit.end, id });
+    }
+
+    // 无引用串的容器（行内锚配对形态）：预览 = 行内锚词句
+    for (const [id, aside] of asideIds) {
+      if (aside.properties['data-preview'] == null) {
+        const span = spanIds.get(id);
+        const text = span ? spanTextOf(span) : '';
+        if (text) aside.properties['data-preview'] = text;
+      }
     }
 
     for (const [p, ranges] of rangesByP) {

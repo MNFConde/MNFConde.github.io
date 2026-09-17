@@ -164,9 +164,10 @@ export function initNotesEngine() {
   }
 
   function clearSelection() {
-    if (activeIds.size === 0 && pinnedIds.size === 0) return;
+    if (activeIds.size === 0 && pinnedIds.size === 0 && modalEls.length === 0) return;
     activeIds = new Set();
     pinnedIds.clear();
+    closeModal();
     layoutEl.classList.remove('has-focus', 'has-pin');
     for (const el of layoutEl.querySelectorAll('.is-active, .is-pinned')) {
       el.classList.remove('is-active', 'is-pinned');
@@ -184,13 +185,39 @@ export function initNotesEngine() {
 
   const sameSet = (a, b) => a.size === b.size && [...a].every((x) => b.has(x));
 
+  // 窄屏聚焦分支：居中模态 + 聚光灯遮罩（M4）；桌面分支：pinned 浮层
+  let backdrop = null;
+  let modalEls = [];
+
+  function openModal(ids) {
+    for (const m of model) {
+      if (ids.has(m.id)) {
+        m.el.classList.add('is-modal');
+        modalEls.push(m.el);
+      }
+    }
+    backdrop = document.createElement('div');
+    backdrop.className = 'note-backdrop';
+    document.body.appendChild(backdrop);
+  }
+
+  function closeModal() {
+    for (const el of modalEls) el.classList.remove('is-modal');
+    modalEls = [];
+    backdrop?.remove();
+    backdrop = null;
+  }
+
   function applySelection(ids) {
     setActive(ids);
-    if (!active) return; // 窄屏（M4 聚焦分支）只高亮，浮层属于桌面形态
-    pinnedIds = new Set([...ids].filter((id) => model.some((m) => m.id === id)));
-    layoutEl.classList.add('has-pin');
-    for (const m of model) m.el.classList.toggle('is-pinned', pinnedIds.has(m.id));
-    updatePinned();
+    if (active) {
+      pinnedIds = new Set([...ids].filter((id) => model.some((m) => m.id === id)));
+      layoutEl.classList.add('has-pin');
+      for (const m of model) m.el.classList.toggle('is-pinned', pinnedIds.has(m.id));
+      updatePinned();
+    } else {
+      openModal(ids);
+    }
   }
 
   layoutEl.addEventListener('click', (e) => {
@@ -232,6 +259,12 @@ export function initNotesEngine() {
   };
 
   for (const m of model) {
+    // 折叠条预览（M4 窄屏消费；宽屏 CSS 隐藏）——构建期由 segment.js 回填 data-preview
+    const preview = document.createElement('span');
+    preview.className = 'note-preview';
+    preview.textContent = m.el.dataset.preview ?? '';
+    m.el.prepend(preview);
+
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'note-copy';

@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   findQuote,
   flattenBlock,
+  rehypeNoteSegment,
   segmentParagraph,
   segmentRanges,
 } from './segment.js';
@@ -122,5 +123,48 @@ describe('segmentParagraph', () => {
     expect(children[0].properties['data-notes']).toBe('a');
     expect(children[0].children[1].tagName).toBe('strong');
     expect(children[1]).toEqual(t('丁'));
+  });
+});
+
+describe('rehypeNoteSegment：预览回填（M4 折叠条数据源）', () => {
+  const el = (tagName, properties = {}, children = []) => ({
+    type: 'element',
+    tagName,
+    properties,
+    children,
+  });
+  const t = (value) => ({ type: 'text', value });
+  const stubFile = () => ({ fail: (m) => { throw new Error(m); }, message: () => {} });
+
+  it('引用式锚定：data-preview = 引用串，暂存属性摘除', () => {
+    const aside = el(
+      'aside',
+      { class: ['margin-note'], 'data-anchor': 'n1', 'data-quote-anchor': '原文句子' },
+      [t('批注内容')]
+    );
+    const tree = {
+      type: 'root',
+      children: [el('p', {}, [t('这是原文句子所在段落')]), aside],
+    };
+    rehypeNoteSegment()(tree, stubFile());
+    expect(aside.properties['data-preview']).toBe('原文句子');
+    expect(aside.properties['data-quote-anchor']).toBeUndefined();
+  });
+
+  it('行内锚配对：data-preview = 锚点词句（空白折叠）', () => {
+    const aside = el('aside', { class: ['margin-note'], 'data-anchor': 'n2' }, [t('批注')]);
+    const tree = {
+      type: 'root',
+      children: [
+        el('p', {}, [
+          t('正文里的'),
+          el('span', { class: ['note-anchor'], id: 'n2' }, [t('关键\n 词句')]),
+          t('被标注'),
+        ]),
+        aside,
+      ],
+    };
+    rehypeNoteSegment()(tree, stubFile());
+    expect(aside.properties['data-preview']).toBe('关键 词句');
   });
 });
