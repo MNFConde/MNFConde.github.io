@@ -7,23 +7,22 @@ const all = [...(await getCollection('notes')), ...(await getCollection('posts')
 const fmt = (d) => d.toISOString().slice(0, 10);
 ---
 
-<BaseLayout title="Blog">
+<BaseLayout title="归档 · Blog">
   <main class="note-layout">
     <article class="note-main">
-      <h1 class="site-title">Blog</h1>
-      <p class="site-intro">以「笔记模式」写作的个人博客：正文与边注同屏，随笔嵌在栏内。</p>
-      <ul class="post-list">
+      <h1>归档</h1>
+      <ul class="post-list archive-list">
         {
           all.map((post) => (
             <li>
+              {post.data.date && (
+                <time datetime={fmt(post.data.date)}>{fmt(post.data.date)}</time>
+              )}
               <a href={`/${post.id}/`}>{post.data.title}</a>
-              {post.data.description && <p class="post-desc">{post.data.description}</p>}
-              {post.data.date && <time datetime={fmt(post.data.date)}>{fmt(post.data.date)}</time>}
             </li>
           ))
         }
       </ul>
-      <p class="site-nav"><a href="/archive/">全部归档 →</a></p>
     </article>
   </main>
 </BaseLayout>
