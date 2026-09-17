@@ -20,5 +20,9 @@ const { frontmatter } = Astro.props;
         <slot />
       </article>
     </main>
+    <script>
+      import { initNotesEngine } from '../scripts/notes-engine.js';
+      initNotesEngine();
+    </script>
   </body>
 </html>

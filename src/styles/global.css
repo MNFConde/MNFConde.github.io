@@ -105,3 +105,24 @@ blockquote {
     padding: 0.35rem 0.85rem;
   }
 }
+
+/* —— M3 碰撞布局模式：data-notes-float 由引擎仅在桌面断点挂载（断点单点在 JS），
+   摘除即回落上方 float/内联样式；top 与 is-left 均由引擎逐条写入 —— */
+.note-layout[data-notes-float] .note-main {
+  position: relative; /* 边注 absolute 的包含块 */
+}
+
+.note-layout[data-notes-float] .margin-note {
+  float: none;
+  clear: none;
+  position: absolute;
+  top: 0; /* 引擎覆写 inline style */
+  left: calc(100% + var(--gutter));
+  width: var(--margin-width);
+  margin-right: 0;
+}
+
+.note-layout[data-notes-float] .margin-note.is-left {
+  left: auto;
+  right: calc(100% + var(--gutter));
+}

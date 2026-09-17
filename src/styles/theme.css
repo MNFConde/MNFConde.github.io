@@ -12,6 +12,7 @@
   --margin-width: 16rem;    /* 边注栏宽 */
   --gutter: 3rem;           /* 正文列与边注栏间距 */
   --page-pad-y: 3rem;       /* 页面上下留白 */
+  --note-gap: 1rem;         /* 边注纵向堆叠间距（M3 布局引擎读取） */
 
   /* —— 字体（font-display: swap 策略：加载完自动切换，网差停在回退）——
      自托管分片字体占位：字体选型后在 public/fonts/ 落 woff2 分片并在此补 @font-face */
