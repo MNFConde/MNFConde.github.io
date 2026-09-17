@@ -196,5 +196,81 @@ export function initNotesEngine() {
     setFrozen(hoverIds(e.target), false);
   });
 
+  // —— 交互：单条边注 hover 复制 + 双击侧栏空白全选边注 ——
+  // 拖拽级按栏隔离为浏览器原生限制（选区跟 DOM 序），复制/全选走程序化路径
+  const noteText = (m) => {
+    const clone = m.el.cloneNode(true);
+    clone.querySelector('.note-copy')?.remove();
+    return (clone.textContent ?? '').replace(/\s+/g, ' ').trim();
+  };
+
+  const writeClipboard = async (text) => {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      // 非安全上下文兜底（localhost/https 之外 clipboard API 不可用）
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.setAttribute('style', 'position:fixed;opacity:0');
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      ta.remove();
+    }
+  };
+
+  for (const m of model) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'note-copy';
+    btn.textContent = '复制';
+    btn.setAttribute('aria-label', `复制边注 ${m.id}`);
+    btn.addEventListener('click', async () => {
+      await writeClipboard(noteText(m));
+      btn.textContent = '已复制';
+      setTimeout(() => {
+        btn.textContent = '复制';
+      }, 1200);
+    });
+    m.el.appendChild(btn);
+  }
+
+  // 双击侧栏空白：边注文本收集进屏外克隆容器并程序化选中（Selection 可跨
+  // user-select:none），用户 Ctrl+C 即得全部边注；边注全亮作选中反馈
+  let cloneBox = null;
+  const clearClone = () => {
+    cloneBox?.remove();
+    cloneBox = null;
+  };
+  layoutEl.addEventListener('dblclick', (e) => {
+    if (e.target !== layoutEl) return; // 仅侧栏空白（正文/边注元素不触发）
+    clearClone();
+    cloneBox = document.createElement('div');
+    cloneBox.className = 'notes-clone-box';
+    for (const m of model) {
+      const p = document.createElement('p');
+      p.textContent = noteText(m);
+      cloneBox.appendChild(p);
+    }
+    document.body.appendChild(cloneBox);
+    const range = document.createRange();
+    range.selectNodeContents(cloneBox);
+    const sel = getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+    setActive(new Set(model.map((m) => m.id)));
+    setTimeout(() => clearActive(), 1600);
+  });
+  document.addEventListener(
+    'click',
+    (e) => {
+      if (cloneBox && !cloneBox.contains(e.target)) {
+        clearClone();
+        getSelection()?.removeAllRanges();
+      }
+    },
+    true
+  );
+
   onMq();
 }

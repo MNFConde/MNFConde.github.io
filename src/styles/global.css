@@ -89,6 +89,45 @@ body {
   border-bottom-color: color-mix(in srgb, var(--accent) 70%, transparent);
 }
 
+/* —— M3 交互：边注复制按钮（桌面 hover 浮现；窄屏内联模式无此交互）—— */
+.note-copy {
+  position: absolute;
+  top: 0;
+  right: 0;
+  padding: 0 0.45em;
+  font: inherit;
+  font-size: 0.8em;
+  color: var(--ink-soft);
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-top: none;
+  cursor: pointer;
+  visibility: hidden;
+}
+
+.margin-note:hover .note-copy,
+.note-copy:focus-visible {
+  visibility: visible;
+}
+
+.note-copy:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+@media (max-width: 1100px) {
+  .note-copy {
+    display: none;
+  }
+}
+
+/* 全选边注的屏外克隆容器（选区载体，仅程序化读取） */
+.notes-clone-box {
+  position: fixed;
+  top: 0;
+  left: -9999px;
+}
+
 /* 随笔：主栏内样式区隔块 */
 .essay {
   margin: 1.4rem 0 1.6rem;
