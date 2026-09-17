@@ -1,28 +1,19 @@
 ---
-import '../styles/global.css';
+import BaseLayout from './BaseLayout.astro';
 const { frontmatter } = Astro.props;
 ---
 
-<html lang="zh-CN">
-  <head>
-    <meta charset="utf-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="generator" content={Astro.generator} />
-    <title>{frontmatter.title}</title>
-  </head>
-  <body>
-    <main class="note-layout">
-      <article class="note-main">
-        <header>
-          <h1>{frontmatter.title}</h1>
-        </header>
-        <slot />
-      </article>
-    </main>
-    <script>
-      import { initNotesEngine } from '../scripts/notes-engine.js';
-      initNotesEngine();
-    </script>
-  </body>
-</html>
+<BaseLayout title={frontmatter.title}>
+  <main class="note-layout">
+    <article class="note-main">
+      <header>
+        <h1>{frontmatter.title}</h1>
+      </header>
+      <slot />
+    </article>
+  </main>
+  <script>
+    import { initNotesEngine } from '../scripts/notes-engine.js';
+    initNotesEngine();
+  </script>
+</BaseLayout>

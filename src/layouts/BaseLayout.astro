@@ -1,0 +1,52 @@
+---
+import '../styles/global.css';
+const { title } = Astro.props;
+---
+
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="generator" content={Astro.generator} />
+    <title>{title}</title>
+    <script is:inline>
+      // 首帧前恢复手动主题，避免暗色用户闪白（M1.5 data-theme 位）
+      try {
+        const t = localStorage.getItem('theme');
+        if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t;
+      } catch {}
+    </script>
+  </head>
+  <body>
+    <slot />
+    <button id="theme-toggle" type="button" class="theme-toggle" aria-label="配色：跟随系统"></button>
+    <script>
+      // 三态循环：跟随系统 → 亮 → 暗 → 跟随系统（auto = 删除 data-theme 回到 prefers-color-scheme）
+      const ICONS = { auto: '◐', light: '☀', dark: '☾' };
+      const LABELS = { auto: '跟随系统', light: '亮色', dark: '暗色' };
+      const ORDER = ['auto', 'light', 'dark'];
+      const btn = document.getElementById('theme-toggle');
+      const current = () => document.documentElement.dataset.theme || 'auto';
+      const render = () => {
+        const c = current();
+        btn.textContent = ICONS[c];
+        btn.setAttribute('aria-label', `配色：${LABELS[c]}`);
+      };
+      btn.addEventListener('click', () => {
+        const next = ORDER[(ORDER.indexOf(current()) + 1) % ORDER.length];
+        try {
+          if (next === 'auto') {
+            delete document.documentElement.dataset.theme;
+            localStorage.removeItem('theme');
+          } else {
+            document.documentElement.dataset.theme = next;
+            localStorage.setItem('theme', next);
+          }
+        } catch {}
+        render();
+      });
+      render();
+    </script>
+  </body>
+</html>

@@ -144,18 +144,41 @@ body {
   left: -9999px;
 }
 
-/* 随笔：主栏内样式区隔块 */
+/* 随笔：主栏内样式区隔块（方向 A：去竖线，纸片感 + 斜体——竖线归引用块专属） */
 .essay {
   margin: 1.4rem 0 1.6rem;
   padding: 0.85rem 1.15rem;
   background: var(--essay-bg);
-  border-left: 3px solid var(--accent);
+  border-radius: var(--radius);
   font-size: var(--font-size-essay);
+  font-style: italic;
   color: var(--ink-soft);
 }
 
 .essay p:last-child {
   margin-bottom: 0;
+}
+
+/* 暗色切换按钮：三态循环（跟随系统 → 亮 → 暗），首帧前由 BaseLayout 内联脚本恢复 */
+.theme-toggle {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 70;
+  width: 2.2rem;
+  height: 2.2rem;
+  font-size: 1.05rem;
+  line-height: 1;
+  color: var(--ink-soft);
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.theme-toggle:hover {
+  color: var(--accent);
+  border-color: var(--accent);
 }
 
 blockquote {
