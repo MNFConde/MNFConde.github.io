@@ -83,7 +83,23 @@ M1.5 主题与选区基座（26-09-17 定案，插队于 M2 之前）:
     ✔ theme.css 令牌抽离（含暗色结构 + swap 字体占位）+ .margin-note user-select:none @high @done(26-09-17 00:29)（产物验证：user-select/dark 媒询/data-theme 覆盖位齐）
 
 M2 转换层（引用式锚定 + 区间分段渲染）:
-    占位：源语法定案 remark-directive；本里程碑落「容器内引用串 → 构建时正文检索定位区间」+ 重叠区间分段（每基本段挂 data-notes 多值，边界切分）+ 引用失配构建警告（fail loudly）
+    验收：容器引用串 → 构建时定位并分段渲染（重叠区间 data-notes 多值）；引用失配构建即失败（strict）；单测绿 + CI 挂 test
+    既定约束（26-09-17 实现 定案）:
+        引用式锚定形态 = :::note-m{#id} 容器内首个 blockquote 为引用串（渲染文本检索定位），其余内容为边注正文；行内 :note-m[]{} 包裹形态并存（零检索直定位）
+        匹配空间 = 单个段落的规范化文本（空白折叠）；零匹配/多匹配/重复 note id → strict 失败（file.fail，CI 把关），插件选项可降级 warn
+        分段 = 区间切基本段、标注段合并相邻同注、每段 span[data-notes=多值] 包裹；切点落在行内元素内则递归切分该元素；带 id 的元素被切开时 id 归首片（发警告）
+        data-notes 供 M3 悬停联动消费
+    切片1 纯函数核心 + 单测:
+        ✔ src/plugins/segment.js 纯函数：findQuote（全部匹配位）/ segmentRanges（区间→基本段，notes 排序输出）/ flattenBlock（规范化文本 + 偏移映射）/ segmentParagraph（段落重建，行内元素递归切分 + id 归首片）@critical @done(26-09-17 08:16)（注：重写为「基本段平铺无间隙」光标模型——首版按标注段+间隙分发，跨段断点光标不前进导致文本重复/丢失）
+        ✔ vitest 接入 + 单测 14 绿（findQuote 多/零匹配、重叠/同界/乱序、嵌套交叠文本保真、相邻同注合并、切点边界、id 归首片告警）@critical @done(26-09-17 08:16)
+    切片2 rehype 接线 + 演示:
+        ✔ notes.js（remark，自 astro.config 迁出）：容器首 blockquote → data-quote-anchor 暂存 @critical @done(26-09-17 08:19)
+        ✔ rehype 接线：aside 引用收集（边注内部不参与检索）→ 段落定位 → aside 挂 data-anchor + 摘除暂存属性 → 段落分段重建；strict 默认开 @critical @done(26-09-17 08:19)（注：id 查重修正为分命名空间——行内锚 id 与 aside data-anchor 同值是配对非重复）
+        ✔ 演示文加重叠场景（嵌套引用串 + 与 M1 行内锚同段共存）+ [data-notes] 微样式（theme 令牌）@high @done(26-09-17 08:19)
+    切片3 验证与收尾:
+        ✔ vitest run 绿 + deploy.yml 加 pnpm test 步骤 + build 产物断言（交叠段 data-notes="n4 n5"）@critical @done(26-09-17 08:25)（CI 37s 绿含 test；线上同断言实证）
+        ✔ plan 勾选 + cairn 回写（锚定形态/算法要点/新坑）@high @done(26-09-17 08:35)
+    ✔ M2 全量落地 @done(26-09-17 08:30)（4fcf05e 主体 + 6bbb046 补交 astro.config；注：首推漏 add 根目录配置文件，CI 构建无分段而本地正常——提交前 git status --short 全览定为纪律，教训入 tech-stack 经验）
 
 M3 JS 碰撞布局 + 悬停联动 + 回升:
     占位：绝对定位 + 贪心碰撞（top[i] = max(锚点top, 上一条bottom+间距)，约 80 行，尺寸经 getComputedStyle 读 theme.css 令牌）；悬停点亮区间全部边注 + 其余暗化；漂移回升（阈值 + hover intent + 视口钳制）；左右分流；交互新增（26-09-17 定案）：单条边注 hover 复制按钮 + 程序化全选边注（Selection API，双击侧栏空白触发）——拖拽级按栏隔离为浏览器原生限制（选区跟 DOM 序），以 user-select:none + 程序化选择组合替代

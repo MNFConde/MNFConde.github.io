@@ -28,6 +28,9 @@ authoring_mode: ai_generated
 - **选区方案（26-09-17）**：边注 `user-select:none`（拖选/Ctrl+A 只取正文含随笔）；M3 补 hover 复制单条 + 程序化全选边注——拖拽级按栏隔离是浏览器原生限制（选区跟 DOM 序），`user-select: contain` 跨浏览器不可押注
 - **字体策略（26-09-17）**：`font-display: swap`（回退即时渲染、加载完自动切换、失败停回退）；方向 = 自托管分片（unicode-range 按需下载、随 Pages 同源分发），字体选型待用户给出
 - **亮暗双主题（26-09-17）**：`prefers-color-scheme` 跟系统 + `data-theme` 手动覆盖位；切换按钮 UI 随 M4 站点件
+- **引用式锚定形态（26-09-17 M2 定案）**：`:::note-m{#id}` 容器首块 blockquote = 引用串，渲染文本空白折叠后检索定位（零匹配/多匹配 strict 构建失败）；行内 `:note-m[]{#id}` 包裹并存且零检索直定位
+- **区间分段算法（26-09-17 M2 定案）**：段落规范化文本按标注边界切基本段平铺（无间隙光标模型——按「标注段+间隙」分发会在跨段断点处丢/重文本，已实证弃用）；标注段 span[data-notes=多值] 包裹、相邻同注合并、相邻文本节点归并；行内元素被切开时递归克隆、id 归首片
+- **id 命名空间（26-09-17 M2 定案）**：行内锚 id 与 aside data-anchor 同值是配对非重复；查重分两张表（spanIds / asideIds）
 
 ## 经验
 
@@ -36,6 +39,9 @@ authoring_mode: ai_generated
 - `pnpm create astro . --yes` 在非空目录会把模板落进随机名子目录而非当前目录——需手动上移
 - 陈旧终端（早于 scoop env_set 的进程）里 fnm 静默兜底 `%APPDATA%\fnm` 空目录，症状 `fnm ls` 只剩 system；重开终端即愈
 - Pages 首推会自动建站且默认 legacy 源（Jekyll 分支构建，对无配置仓库必失败产生噪音运行）；`actions/configure-pages` 的 enablement 不会翻转已存在站点，需 `gh api -X PUT repos/<o>/<r>/pages -f build_type=workflow` 切源
+- **M2 坑：`git add src/` 漏掉根目录配置**——astro.config.mjs 不在 src/ 下，首推后 CI 构建无分段而本地正常（本地文件是新的），4fcf05e→6bbb046 补交修复；纪律 = 提交前 `git status --short` 全览，根目录配置文件（astro.config / AGENTS.md / plan.todo）显式入 add 清单
+- **M2 坑：CI 与本地构建产物不一致的排查路径**——diff 线上与本地产物字节（fold -w120 后 diff），先确认「线上是不是这个提交的构建」再怀疑环境；本次实为漏提交而非环境差异
+- 沙箱/代理环境下 curl localhost 须 `--noproxy '*'`，否则 502 假象
 
 ## 开放问题
 
