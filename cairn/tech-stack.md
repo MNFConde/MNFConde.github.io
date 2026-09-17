@@ -5,7 +5,7 @@ summary: "个人博客技术栈决策归档：Astro 7 + 用户站 GitHub Pages�
 tags: [Astro, GitHub-Pages, 边注, sidenotes, remark-directive, fnm, pnpm, scoop]
 contains: [decision, experience]
 created: "2026-09-16"
-updated: "2026-09-17"
+updated: "2026-09-18"
 related: []
 authoring_mode: ai_generated
 ---
@@ -34,7 +34,10 @@ authoring_mode: ai_generated
 - **M3 布局模型（26-09-17 定案）**：碰撞排程抽纯函数 layoutNotes（无 DOM 依赖、vitest 直测）——双链贪心 top=max(锚点, 链底+gap)，左右分流择 drift 小者（平局右）；漂移回升钳在 [锚点, 静态位] 区间内、视口上沿越过即随文档离场（**回升窗口天然 ≤ gap**，全程 sticky 会让边注一路跟到页尾，不做）；hover 冻结项 bottom 继续占位防指针脱离
 - **桌面/移动模式切换（26-09-17 定案）**：断点驱动非手动配置——桌面（>1100px）平铺、窄屏聚焦模式归 M4（竖屏平铺挤压正文）；引擎挂/摘 data-notes-float 属性即模式开关，断点单点在 JS（CSS 1100px 降级与 matchMedia 配对，改动两处同步）
 - **全选边注实现（26-09-17 定案）**：Selection range 是连续的、无法跨离散元素——边注 DOM 序穿插正文，直接 range 会把中间正文选进去；解法 = 边注文本收集进屏外克隆容器再对容器 selectNodeContents；`user-select:none` 不拦截程序化选区
-- **悬停联动基建（26-09-17 定案）**：id↔元素映射缓存 + is-active/has-focus 高亮管理 + layoutEl 单点事件分发，独立于定位模式（内联降级下同样工作）；M4 聚焦模式的 click 联动复用同一套
+- **悬停联动基建（26-09-17 定案；26-09-18 触发模型更正，已落地）**：id↔元素映射缓存 + is-active/has-focus 高亮管理 + layoutEl 单点事件分发，独立于定位模式。更正：交互触发自 hover 改为 **click**（用户心智模型澄清——26-09-17「桌面端也 click」涵盖全部交互，非仅聚焦模式展开），已于 M3 切片3 落地；基建（映射/高亮/分发）原样复用，hover 不再触发高亮；M4 聚焦模态与桌面 pinned 浮层同构一个 click 状态机、两个渲染分支
+- **召唤态几何（26-09-18 定案）**：pinned/居中模态是用户显式召唤，视口约束放开——边注钳在「锚点与视口上沿」之间跟随滚动（召唤态 sticky）；与常驻布局「不追踪视口」定案并存不矛盾。召唤期间其它边注冻结静态位、不补位，取消即恢复排程位——除被召唤者外页面零跳动
+- **fixed 居中模态几何（26-09-18 定案）**：`inset:0 + margin:auto` 的包含块是可用视口（不含滚动条），模态相对内容区居中、偏滚动条一半宽度是**正确行为**非 bug；宽度必须 `border-box` + 百分比——`100vw` 含滚动条会导致水平偏移，content-box 下加 padding 会溢出视口
+- **内容结构（26-09-18 定案）**：双 content collection——notes（笔记模式，NoteLayout+边注引擎）/ posts（常规文，BaseLayout 单栏），zod schema（title/description/date）；`[slug].astro` 合并两 collection 动态路由，URL 与迁移前保持一致；md 迁入 collection 时须删 frontmatter 的 `layout:` 键（与 render() 渲染不兼容，布局由路由组件提供）
 
 ## 经验
 
@@ -51,4 +54,4 @@ authoring_mode: ai_generated
 
 ## 开放问题
 
-- 无阻塞项；M4（窄屏聚焦模式：折叠条 + 居中模态 + 聚光灯 + 预览回填；随笔样式方向 A；常规博客件）排期见 plan.todo
+- 站点元信息（站点名/作者署名/描述）待用户提供；其余无阻塞项，后续主题迭代（字体选型等）见 plan.todo
