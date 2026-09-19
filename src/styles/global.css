@@ -237,6 +237,66 @@ blockquote {
   color: var(--ink-soft);
 }
 
+/* 原文对照（M5）：邻接 :::orig → 译文块正下方插行；默认隐藏，.is-open 展开（选区天然只取可见正文） */
+.orig-block {
+  display: none;
+  margin: var(--orig-tuck) 0 1.1rem;
+  padding-left: var(--orig-indent);
+  font-size: var(--font-size-orig);
+  font-style: italic;
+  color: var(--ink-soft);
+}
+
+.orig-block.is-open {
+  display: block;
+}
+
+.orig-block p {
+  margin: 0;
+}
+
+/* 全局开关：仅声明 original: true 的文章渲染（有原文才出按钮） */
+.orig-controls {
+  display: flex;
+  justify-content: flex-end;
+  margin: -1.2rem 0 1.6rem;
+}
+
+.orig-global {
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 0.15rem 0.6rem;
+  cursor: pointer;
+}
+
+.orig-global:hover,
+.orig-global[aria-pressed='true'] {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+/* 段尾角标：单段开合触发点，独立元素不占用正文 click */
+.orig-toggle {
+  margin-left: 0.45em;
+  padding: 0 0.35em;
+  font-size: 0.78em;
+  color: var(--ink-soft);
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  cursor: pointer;
+  vertical-align: 0.12em;
+}
+
+.orig-toggle:hover,
+.orig-toggle[aria-pressed='true'] {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
 /* 窄屏：聚焦模式（M4）——边注折叠条 + click 居中模态 + 聚光灯，取代内联降级 */
 @media (max-width: 1100px) {
   .note-layout {

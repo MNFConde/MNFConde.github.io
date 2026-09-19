@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Blog —— 个人博客（Astro 7 + GitHub Pages 用户站 [MNFConde.github.io](https://MNFConde.github.io)，push 即发布）。当前状态：**M3+M4 落地**——M1 工具链与骨架、M1.5 主题令牌（theme.css 唯一外观入口 + 暗色跟系统）、M2 转换层（引用式锚定 + 区间分段渲染 span[data-notes]）、M3 桌面边注引擎（碰撞分流回升 + click 召唤：桌面 pinned 浮层 / 窄屏居中模态双分支）、M4 聚焦模式（折叠条 + 聚光灯）与站点件（随笔样式 A / 暗色三态切换 / content collections / 首页归档）全通，vitest 31 绿入 CI；文章进 src/content/{notes,posts}/（[slug].astro 动态路由）；唯一遗留 = 站点元信息待用户提供；按 plan.todo 推进（plan.todo 为唯一规划/里程碑事实源，取代 ROADMAP）。
+Blog —— 个人博客（Astro 7 + GitHub Pages 用户站 [MNFConde.github.io](https://MNFConde.github.io)，push 即发布）。当前状态：**M3+M4+M5 落地**——M1 工具链与骨架、M1.5 主题令牌（theme.css 唯一外观入口 + 暗色跟系统）、M2 转换层（引用式锚定 + 区间分段渲染 span[data-notes]）、M3 桌面边注引擎（碰撞分流回升 + click 召唤：桌面 pinned 浮层 / 窄屏居中模态双分支）、M4 聚焦模式（折叠条 + 聚光灯）与站点件（随笔样式 A / 暗色三态切换 / content collections / 首页归档）、M5 原文对照（posts 邻接式 :::orig + 段内插行 + 全局/段级双层开关）全通，vitest 49 绿入 CI；文章进 src/content/{notes,posts}/（[slug].astro 动态路由）；遗留 = 站点元信息待用户提供；notes 原文对照不排期（关键坑已记 plan.todo M5）；按 plan.todo 推进（plan.todo 为唯一规划/里程碑事实源，取代 ROADMAP）。
 
 > 本仓库的 cairn 规则**自包含于本文件**，不依赖外部 skill；`cairn/` 是项目知识层，条目类型固定「经验杂文」。
 
@@ -40,6 +40,13 @@ Blog —— 个人博客（Astro 7 + GitHub Pages 用户站 [MNFConde.github.io]
 - 指令与仓库文档/既有约定冲突时，先指出冲突点、说明取舍，再执行
 - 项目状态变化时同步本文件状态行
 
+## 写作约束（原文对照，M5）
+
+- 原文对照仅 posts（notes 不排期）；正文为中文译文，`:::orig` 块紧邻译文块（段/标题/列表/引用）之后承载原文，邻接即配对
+- 原文仅承载纯文字（不含图片/链接/代码等富内容）且恰好一个段落；图片等无原文块不成对、自由直排
+- 含原文的文 frontmatter 须声明 `original: true`（全局按钮渲染判定）；可选 `originalDefault: hidden | expanded` 定每篇默认态（缺省 hidden）
+- 配对失配（文首/前块不可配对/连续 orig/嵌套/富内容/多段落）→ `src/content-gate.test.js` 红（CI 把关）：文档约束管人 + 校验管机器
+
 ## 提交规范（Conventional Commits，承 mdor）
 
 - 格式 `类型(可选范围): 主题`；类型白名单 feat/fix/docs/style/refactor/perf/test/build/ci/chore/revert；详情规范承自 mdor `.agents/rules/commit.md`
@@ -52,4 +59,6 @@ Blog —— 个人博客（Astro 7 + GitHub Pages 用户站 [MNFConde.github.io]
 - Node 激活（无 profile 常驻 hook，26-09-16 定案）：PowerShell 会话执行 `.\scripts\activate.ps1` 一次整会话生效；bash 用 `eval "$(fnm env --use-on-cd --shell bash)"`；陈旧终端症状 = `fnm ls` 只剩 system（fnm 静默兜底 %APPDATA%\fnm），重开终端即愈
 - pnpm 依赖构建脚本放行：`pnpm-workspace.yaml` 的 `allowBuilds`（esbuild/sharp 已开；package.json 的 allowScripts 字段 pnpm 12 不认）
 - Astro 7：markdown remark 插件管线需显式依赖 `@astrojs/markdown-remark`（默认 Sätteri 处理器）；dev 后台模式 `pnpm astro dev --background` / `stop` / `status` / `logs`
+- Astro 7 content layer 坑（26-09-19 实测）：remark/rehype 插件的 `file.fail` 不会使构建失败——glob loader 吞错仅记日志、空正文页照常产出、exit 0，管线内 strict 形同虚设；strict 真正执行点 = `src/content-gate.test.js`（同一套 remark 管线离线重放，deploy.yml 的 pnpm test 先于 build）；M2 的「引用失配构建即失败」同受影响，已由同一门槛接管
+- AI bash 工具会话（mvdan/sh）激活 Node：`eval fnm env` 在该 shell 不生效，用 `export PATH="D:\Software\Scoop\apps\fnm\current\node-versions\<ver>\installation;$PATH"`（Windows 路径 + 分号分隔）；版本以 .nvmrc 对应实目录为准
 - 验收节奏：`pnpm build` + `pnpm preview`（或直接看 Pages 线上）；部署 push main → `.github/workflows/deploy.yml`（permissions 三行 + `--frozen-lockfile` 不可动）

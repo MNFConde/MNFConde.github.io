@@ -2,6 +2,11 @@
 
 > 时序日志，新条目置顶，每条 ≤20 行，只放摘要与指针；长结论沉淀进 cairn/ 主题笔记。
 
+## 2026-09-19
+
+- **M5 原文对照落地（切片1 posts 全链路）**：邻接式 `:::orig`（纯文字块级配对）+ 段内插行（display:none 默认，负 margin 吃进段距）+ 双层开关（全局 localStorage 偏好同构暗色三态 + 段尾角标）；orig-demo 5 组对照实证，vitest 49 绿。**重大坑**：content layer 吞 file.fail——「strict 构建失败」自 M2 起即不成立，strict 执行点迁至 `src/content-gate.test.js`（M2 验收已在 plan 原位加更正注）。notes 不排期（用户定案）。→ plan.todo M5 / original-text.md / tech-stack.md
+- **M5 原文对照规划定稿（仅规划未执行）**：译文中文正文 + 同文件邻接式 `:::orig` 原文（纯文字、块级一一配对，strict 失配构建失败）；渲染段内插行（默认 display:none，选区隔离天然成立）；交互双层开关——全局 localStorage 偏好（与暗色三态同构）+ 段尾角标；posts 先行、notes 独立切片（需触发 notes-engine 重排）。全量约束与切片 → plan.todo M5；另回填 M0 两格滞后勾选
+
 ## 2026-09-17
 
 - **M3 切片3 + M4 全量落地（26-09-18 收官）**：交互触发统一 click——桌面 pinned 浮层（点击召唤，钳在锚点与视口上沿跟随，其余边注冻结）+ 窄屏聚焦模式（等高折叠条 + 居中模态 + 聚光灯，同一状态机双分支）；随笔样式 A（去竖线纸片斜体）；暗色三态切换（BaseLayout 抽壳 + 首帧防闪白）；content collections 双 collection + 首页/归档/动态路由（URL 保持）；vitest 31 绿。遗留 = 站点元信息待用户提供。→ plan.todo M3/M4 / tech-stack.md

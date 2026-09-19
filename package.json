@@ -25,6 +25,9 @@
     "sharp": true
   },
   "devDependencies": {
+    "gray-matter": "^4.0.3",
+    "remark-parse": "^11.0.0",
+    "unified": "^11.0.5",
     "vitest": "^5.0.1"
   }
 }

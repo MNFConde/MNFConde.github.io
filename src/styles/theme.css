@@ -28,6 +28,9 @@
   --line-height-base: 1.9;
   --font-size-note: 0.86rem;
   --font-size-essay: 0.95rem;
+  --font-size-orig: 0.95rem; /* 原文对照插行文字（M5） */
+  --orig-tuck: -0.55rem;     /* 原文插行上提量：吃进译文段下边距，组内紧凑（M5） */
+  --orig-indent: 1.1rem;     /* 原文插行左缩进（M5） */
 
   /* —— 亮色画布 —— */
   --ink: #23231f;           /* 正文墨色 */

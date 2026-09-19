@@ -3,9 +3,9 @@ type: 经验杂文
 status: active
 summary: "个人博客技术栈决策归档：Astro 7 + 用户站 GitHub Pages（Actions push 即发布）；笔记模式四层方案的 M1 落地形态与后续排期；工具链 fnm/pnpm via scoop 清单接管"
 tags: [Astro, GitHub-Pages, 边注, sidenotes, remark-directive, fnm, pnpm, scoop]
-contains: [decision, experience]
+contains: [decision, experience, lesson]
 created: "2026-09-16"
-updated: "2026-09-18"
+updated: "2026-09-19"
 related: []
 authoring_mode: ai_generated
 ---
@@ -28,7 +28,8 @@ authoring_mode: ai_generated
 - **选区方案（26-09-17）**：边注 `user-select:none`（拖选/Ctrl+A 只取正文含随笔）；M3 补 hover 复制单条 + 程序化全选边注——拖拽级按栏隔离是浏览器原生限制（选区跟 DOM 序），`user-select: contain` 跨浏览器不可押注
 - **字体策略（26-09-17）**：`font-display: swap`（回退即时渲染、加载完自动切换、失败停回退）；方向 = 自托管分片（unicode-range 按需下载、随 Pages 同源分发），字体选型待用户给出
 - **亮暗双主题（26-09-17）**：`prefers-color-scheme` 跟系统 + `data-theme` 手动覆盖位；切换按钮 UI 随 M4 站点件
-- **引用式锚定形态（26-09-17 M2 定案）**：`:::note-m{#id}` 容器首块 blockquote = 引用串，渲染文本空白折叠后检索定位（零匹配/多匹配 strict 构建失败）；行内 `:note-m[]{#id}` 包裹并存且零检索直定位
+- **引用式锚定形态（26-09-17 M2 定案）**：`:::note-m{#id}` 容器首块 blockquote = 引用串，渲染文本空白折叠后检索定位（零匹配/多匹配 strict 构建失败）；行内 `:note-m[]{#id}` 包裹并存且零检索直定位。
+  更正（26-09-19 实测）：「strict 构建失败」在 Astro 7 content layer 下不成立——file.fail 被吞（仅日志）、空正文页照出、exit 0；strict 真正执行点已迁至 `src/content-gate.test.js`，详见 [original-text.md](original-text.md)
 - **区间分段算法（26-09-17 M2 定案）**：段落规范化文本按标注边界切基本段平铺（无间隙光标模型——按「标注段+间隙」分发会在跨段断点处丢/重文本，已实证弃用）；标注段 span[data-notes=多值] 包裹、相邻同注合并、相邻文本节点归并；行内元素被切开时递归克隆、id 归首片
 - **id 命名空间（26-09-17 M2 定案）**：行内锚 id 与 aside data-anchor 同值是配对非重复；查重分两张表（spanIds / asideIds）
 - **M3 布局模型（26-09-17 定案）**：碰撞排程抽纯函数 layoutNotes（无 DOM 依赖、vitest 直测）——双链贪心 top=max(锚点, 链底+gap)，左右分流择 drift 小者（平局右）；漂移回升钳在 [锚点, 静态位] 区间内、视口上沿越过即随文档离场（**回升窗口天然 ≤ gap**，全程 sticky 会让边注一路跟到页尾，不做）；hover 冻结项 bottom 继续占位防指针脱离
@@ -51,6 +52,9 @@ authoring_mode: ai_generated
 - 沙箱/代理环境下 curl localhost 须 `--noproxy '*'`，否则 502 假象
 - **M3 坑：程序化 dispatchEvent(mouseover) 不触发 CSS `:hover` 伪类**——getComputedStyle 读到的 visibility/样式不变，自动化验证 hover 态须用真实鼠标事件（browser-use 的 cua.move）
 - **M3 坑：双链分流改变了测试场景设计**——左链一空，第二条边注即分流离右链，「右链下推/回升」场景必须双链都占（至少 3 条密集边注）才成立；写布局单测先推演分流，别按单链直觉定期望值
+- **M5 坑：content layer 吞 file.fail（lesson）**——Astro 7 下 remark/rehype 插件 file.fail 仅被 glob loader 记日志，坏内容产出空正文页且 build exit 0；单测绿不代表构建会拦。教训：凡「失配即失败」类约束，验收必须实测负例走完整构建，不能只信插件机制；解决方案 = 同管线离线重放的内容门槛（vitest，CI 先于 build）
+- **M5 坑：AI bash 工具会话（mvdan/sh）激活 Node**——`eval "$(fnm env)"` 导出的 bash 格式 PATH（冒号分隔）在该 shell 不生效，node 仍找不到；须用 Windows 路径 + 分号分隔手工 export node-versions\<ver>\installation
+- printf 写临时 md 时勿加 `--`（该实现会把它当格式打印，破坏 frontmatter 头，故障形态 = schema 报 title Required 而非真实目标错误）
 
 ## 开放问题
 

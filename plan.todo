@@ -29,9 +29,9 @@ M0 本地环境工具链（fnm + pnpm + Node；存储随 scoop 落 D 盘）:
         ✔ npm config set cache D:\dev\npm-cache（npm 缓存不属 pnpm/scoop 清单体系，需自理；config get 验证通过）@low @done(26-09-16 22:54)
     步骤4 锚点文件（联动不靠人记，环境即仓库）:
         ✔ .nvmrc 落项目根（内容一行：22）@high @done(26-09-16 22:54)
-        ☐ package.json 钉 "packageManager": "pnpm@12.4.2"（取当时稳定版；pnpm 自读自切，不依赖 corepack）+ "engines": { "node": ">=22" } @high
+        ✔ package.json 钉 "packageManager": "pnpm@12.4.2"（取当时稳定版；pnpm 自读自切，不依赖 corepack）+ "engines": { "node": ">=22" } @high @done(26-09-16 23:10)（随 M1 Astro 骨架落地；engines 实取模板 >=22.12.0）
             注：版本双轨——scoop 供基础入口（scoop update pnpm 升级），项目实际版本由 packageManager 字段自切；Node 25 起官方不再随附 corepack，不走 corepack 路线
-        ☐ pnpm-lock.yaml 提交入库（CI --frozen-lockfile 锁死）@high
+        ✔ pnpm-lock.yaml 提交入库（CI --frozen-lockfile 锁死）@high @done(26-09-16 23:10)（随 M1 Astro 骨架落地）
             注：.nvmrc 可先行落地；package.json / lockfile 随 Astro 骨架生成时补齐（骨架属 M1，届时回填勾选）
     M0 验收:
         ✔ fnm/pnpm 任意终端可用（scoop shims）；node 激活后 v22.23.2 / npm 10.9.8 @critical @done(26-09-16 22:54)
@@ -84,6 +84,7 @@ M1.5 主题与选区基座（26-09-17 定案，插队于 M2 之前）:
 
 M2 转换层（引用式锚定 + 区间分段渲染）:
     验收：容器引用串 → 构建时定位并分段渲染（重叠区间 data-notes 多值）；引用失配构建即失败（strict）；单测绿 + CI 挂 test
+        注（26-09-19 更正，不覆盖原验收）：「strict 构建失败」经实测在 Astro 7 content layer 下不成立——file.fail 被吞（仅日志）、空正文页照出、exit 0；strict 真正执行点已迁至 src/content-gate.test.js（pnpm test 先于 build，CI 把关不变）
     既定约束（26-09-17 实现 定案）:
         引用式锚定形态 = :::note-m{#id} 容器内首个 blockquote 为引用串（渲染文本检索定位），其余内容为边注正文；行内 :note-m[]{} 包裹形态并存（零检索直定位）
         匹配空间 = 单个段落的规范化文本（空白折叠）；零匹配/多匹配/重复 note id → strict 失败（file.fail，CI 把关），插件选项可降级 warn
@@ -145,3 +146,24 @@ M4 响应式聚焦模式 + 常规博客件:
         ✔ content collections：双 collection（notes 笔记模式 / posts 常规文）+ zod schema（title/description/date）；演示文迁入 src/content/notes @high @done(26-09-18 00:45)（fb2562a）
         ✔ 首页/归档/普通文章布局：首页文章列表（按日期倒序）+ /archive/ 归档 + [slug].astro 合并动态路由（URL /notes-demo/ 保持）；常规文 BaseLayout 单栏直排（about 页为实例）@high @done(26-09-18 00:45)（fb2562a；4 页构建 + 浏览器全链路实证）
     ✔ M4 主体落地 @done(26-09-18 00:45)（fc2d70e + a6f79c2 + fb2562a；唯一遗留 = 站点元信息待用户提供）
+
+M5 原文对照（译文中文正文 + 邻接原文块；posts 专属，notes 不排期）:
+    依据：26-09-19 讨论定案（本节既定约束即全量决策；场景 = 翻译类文章，正文中文、原文英文或其它文字可对照阅读）
+    验收：posts 文章段级原文对照可用（默认收起；段尾角标单段开合 + 全局开关批量/默认；偏好跨页延续）；配对失配 strict 构建失败；单测绿 + CI 把关
+    既定约束（26-09-19 讨论定案）:
+        数据建模 = 同文件邻接式配对：`:::orig` 容器块紧邻译文块之后（邻接即配对，不做 :::pair 大包裹）；配对单位 = 块（段/标题/列表/引用）
+        原文内容 = 仅承载纯文字（不含图片/链接/代码等富内容）；图片等无原文的块不成对、自由直排（显式邻接配对天然容忍无原文块）
+        strict 校验 = 缺 orig / 多 orig / 邻接破坏（译文块与 orig 间插入其它块）→ 构建失败（承 M2 哲学，插件选项可降级 warn）；单测覆盖
+        渲染 = 段内插行：原文展开于所属译文段正下方（组内紧凑、组间保持段间距），灰字/斜体/略小字号，样式全走 theme.css 新令牌（承 M1.5 不写裸值）；默认 display:none——选区/Ctrl+A 天然不带走原文（承 M1.5「只取正文」）
+        交互 = 双层开关：全局按钮（批量设置 + 默认值，再点即重置）+ 段尾专用角标（单段 toggle）；段级为独立元素不占用正文 click——规避与 M3/M4 笔记模式 click 状态机冲突；Esc 语义不涉原文
+        状态优先级 = localStorage 全局读者偏好（与暗色三态同构：碰过即接管全站，含首帧内联恢复防展开跳动）> frontmatter 每篇默认 > 收起；frontmatter 布尔位声明「有无原文」兼作全局按钮渲染判定（无原文页面不出按钮）
+        范围 = posts（BaseLayout 单栏）专属；notes 不排期（26-09-19 定案：本里程碑不做；将来启动时的关键坑已在：展开改变段落高度须触发 notes-engine 重排——现只听 scroll/resize/fonts.ready；插行与边注栏共存需视觉验收）
+        约束落点 = 「原文仅文字、块级一一对应」写入 AGENTS.md 写作审查约束（管人）+ strict 构建校验（管机器）双保险；决策沉淀 cairn 主题笔记
+    切片1 posts 原文对照全链路:
+        ✔ 转换层：:::orig 邻接识别 + 块级配对纯函数（缺/多/邻接破坏 strict 失败）+ vitest @critical @done(26-09-19 17:05)（orig.js：pairOrigBlocks 纯函数 + remarkOrig 接线，17 例单测）
+        ✔ 渲染：段内插行结构注入 + 默认 display:none + theme.css 原文令牌 @high @done(26-09-19 17:05)（--font-size-orig/--orig-tuck/--orig-indent 三令牌；负 margin 上提吃进段距，组内紧凑组间保节奏）
+        ✔ 交互：段尾角标 toggle + 全局开关（有原文文章才渲染）+ localStorage 偏好 + 首帧内联恢复 @critical @done(26-09-19 17:05)（orig-engine.js；角标挂点对列表/引用落到末子块）
+        ✔ frontmatter：有无原文布尔位 + 每篇默认态入 zod schema @high @done(26-09-19 17:05)（posts collection：original / originalDefault）
+        ✔ 演示文落邻接原文（覆盖图片不成对直排场景）+ 浏览器实证 @high @done(26-09-19 17:05)（orig-demo：5 组对照含标题/列表对 + 图片不成对 + 无原文段；产物断言 5 块默认收起 + curl 可达；点击交互待用户浏览器复核）
+        ✔ 文档收尾：AGENTS.md 写作审查约束 + cairn 决策/LOG 回写 + plan 勾选 @high @done(26-09-19 17:05)（另：strict 执行点迁移坑入 tech-stack/original-text）
+    ✔ M5 全量落地（切片1）@done(26-09-19 17:05)（vitest 49 绿 + build 绿 + 产物/curl 实证；坑：file.fail 被 content layer 吞，strict 执行点迁至 content-gate.test.js）

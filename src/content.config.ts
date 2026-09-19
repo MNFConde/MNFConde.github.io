@@ -18,6 +18,8 @@ const posts = defineCollection({
     title: z.string(),
     description: z.string().optional(),
     date: z.coerce.date().optional(),
+    original: z.boolean().optional(),
+    originalDefault: z.enum(['hidden', 'expanded']).optional(),
   }),
 });
 
