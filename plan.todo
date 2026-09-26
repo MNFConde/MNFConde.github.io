@@ -191,3 +191,37 @@ M6 标题导航 TOC（常显可折叠 + 移动端兼容）:
     结构观察项（26-09-26 审查，暂不动，触发即办）:
         ☐ BaseLayout 站点件挂载点收敛：第三个全局件出现时抽「站点件区」组件 @low
         ☐ global.css 拆分：M6 落地后按 布局壳/边注系统/原文对照/站点件 拆文件（现 392 行逼近 500 限）@low
+
+M7 标签与系列（首页双维过滤 + 文内系列导航 + 文末回链）:
+    依据：26-09-26 讨论定案（本节既定约束即全量决策；场景 = 博文打标签检索 + 系列博文（教程笔记等）一站式承载）
+    验收：加新标签/开新系列零代码改动（纯 frontmatter 数据自证）；首页双维过滤可用（显隐 + 系列视图按序重排 + 深链还原）；49 测试不红 + 新增单测绿；preview 肉眼复核
+    既定约束（26-09-26 讨论定案）:
+        双维通用：tags/series/seriesOrder 字段 notes 与 posts 两 collection 同加（笔记模式一等公民）；全字段可选 + 缺省——存量文章零改动、既有渲染产物不变（承 M4 切片3 schema 增量扩展）
+        不设标签/系列路由：/tags/、/series/ 静态页不做，首页 chip 排即索引；空标签天然不存在（构建期自文章反向聚合，无注册表，无需显式处理）
+        过滤 = 显隐模型：全集常驻 DOM 为前提——构建期分页与过滤互斥；量级路径定案 = 全量单列 → 列表长后展示层 load-more（DOM 仍全集，过滤不受影响）→ 真需构建期分页时过滤视图退静态路由（聚合函数复用，可逆决策）
+        URL 状态 = ?tag=x / ?series=x（单一激活过滤器，两参数不同现，撞名无碍）；中文标签/系列名原字符串编码（地址栏解码显示，URLSearchParams 自动解码）；history.pushState + 载入还原（刷新/后退/外链深链可恢复筛选态）
+        系列视图 = 按 data-order 重排（insertBefore，与显隐同量级纯客户端）+ 项显「第 n/N」角标；序的核心体验在文内——序号/上下篇计算落聚合纯函数，[slug].astro 只接线传 props（布局只渲染不知聚合，承 M6「[slug] 纯路由」分工）
+        交互 = 一律 click（承 M3 定案）；无 JS 降级 = chips 为按钮、点击无效但列表完整可读（渐进增强），文内系列条不依赖 JS
+        归档页 v1 不动：归档 = 零 JS 密集全量索引（打印友好/任意环境可读），首页 = 交互门面，分工明确；首页默认排序不变（notes+posts 日期倒序合并，筛选只显隐、系列视图才重排）
+        文末回链 = 「← 全部文章」文本链接（26-09-26 用户定案锚文案），落 PostLayout/NoteLayout slot 之后（两布局恰为文章页专属，首页/归档不长出回链）；样式全走 theme.css 令牌（承 M1.5 不写裸值）
+        约束落点 = zod schema 管字段类型；跨字段一致性归 content-gate（承 M5 哲学：schema 管字段、gate 管跨字段）——有 seriesOrder 无 series 失配红 + 文章 slug（两 collection）保留前缀（tags/series/archive）防路由遮蔽
+    切片1 schema + 门槛:
+        ✔ content.config：双 collection 加 tags（array，transform trim + 去重）/ series / seriesOrder 可选字段 @critical @done(26-09-26 21:55)（490bf10；taxonomyFields 共享对象双 collection 展开）
+        ✔ content-gate.test.js：seriesOrder/series 一致性检查 + slug 保留前缀检查 @critical @done(26-09-26 21:55)（490bf10；同系列序号唯一性一并覆盖；series 空串/schema 类型归 zod）
+    切片2 首页双维过滤器:
+        ✔ 聚合纯函数（标签/系列带计数，供 chip 排与将来退静态路由复用）+ vitest @critical @done(26-09-26 21:55)（30682dc；src/lib/taxonomy.js 8 例：计数/collator 排序/成员排序/上下篇）
+        ✔ index.astro：chip 排（系列段 + 标签段）+ 列表项 data-tags/data-series/data-order 属性 @critical @done(26-09-26 21:55)（30682dc；data-tags 走 JSON 防标签内空格误配）
+        ✔ filter-engine.js：click 显隐 + 系列视图按序重排 + 「第 n/N」角标 + pushState / 载入按 URL 还原 @critical @done(26-09-26 21:57)（30682dc + 浏览器实证即修：角标初版按构建序分配致系列视图倒挂，改按排序后 ordered 数组）
+        ✔ theme.css：chip / 角标令牌样式 @high @done(26-09-26 21:55)（30682dc；注：既有令牌足够（--radius/--line/--accent/color-mix），样式落 global.css 结构区零新令牌，theme.css 未动）
+    切片3 文内系列导航 + 回链:
+        ✔ [slug].astro：调聚合函数算系列序与上一篇/下一篇 → props 传布局 @high @done(26-09-26 21:55)（90f0c85；all 经 getStaticPaths props 直传，[slug] 保持纯路由+接线）
+        ✔ PostLayout / NoteLayout：header 系列条（系列名 + 序号 + 上下篇链接）@high @done(26-09-26 21:55)（90f0c85）
+        ✔ 文末回链「← 全部文章」+ theme.css 样式 @high @done(26-09-26 21:55)（90f0c85；样式 global.css：分隔线 + 小一号字，截图复核融洽）
+    切片4 演示与收尾:
+        ✔ 演示文打标 + 组系列（覆盖 notes/posts 混合场景）@high @done(26-09-26 21:55)（a9fa7bd；系列「站点导览」about(1)/notes-demo(2)/orig-demo(3)）
+        ✔ 浏览器实证（过滤/深链/重排/系列条/回链/无 JS 降级）+ pnpm build + test 全绿 @critical @done(26-09-26 22:00)（vitest 59 绿（49+10）+ build 5 页 + 实证：chip 显隐/aria-pressed/?tag= 与 ?series= pushState/深链载入还原/失效深链忽略/popstate 后退还原/系列重排+角标/取消复位/系列条 2/3 双向/回链视觉；无 JS 降级 = chips 无效列表完整可读（结构性确认）；坑：IAB 非前台真实输入不落页（环境限制，DOM click 全链路正常）；另记 1280px 视口压三栏边界左栏轻截断为 M1 既有现象）
+        ✔ 文档收尾：plan 勾选 + cairn 决策/LOG 回写 @high @done(26-09-26 22:00)（cairn/taxonomy.md 新建 + LOG 置顶条目 + AGENTS 状态行）
+    ✔ M7 全量落地（切片1-4）@done(26-09-26 22:00)（490bf10 + 30682dc + 90f0c85 + a9fa7bd；「加新标签/开新系列零代码」由纯 frontmatter 反向聚合天然自证）
+    观察项（本次定案未纳入，触发即办）:
+        ☐ 文章页 header tag chips（点击深链 /?tag= 回首页筛选）@low
+        ☐ 标签/系列静态路由版（/tags/[tag]/ 等，聚合函数复用）——仅在构建期分页真启动时随行 @low
