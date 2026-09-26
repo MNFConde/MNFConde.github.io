@@ -4,6 +4,7 @@
 
 ## 2026-09-27
 
+- **M8 图片排版与缩放预览全量落地**：正文图原始尺寸优先居中 + max-width 栏宽护栏（border-box 防边框溢栏）；rehype 构建期加工（image-size 尺寸回填防 CLS——原生含 SVG viewBox 回退，原计划自解析取消；独图段落 figure 化 + title→figcaption）；暗色图底统一卡片化走**令牌透明化**（--img-plate/--img-edge/--img-radius 亮色 transparent/0 观感不变，暗色白衬底归一透明底与白底截图，零逐图 opt-in）；自研 img-view-engine 全屏查看器（滚轮/双击/双指锚点缩放 + 拖拽边界钳制 + FLIP 开合 + 键盘可达，零运行时依赖维持）。**实证两修**：合成指针下 setPointerCapture 抛错致拖拽失联（try/catch 降级）；查看器恒垫浅衬底 + 遮罩 0.8（透明底深墨图在恒深遮罩上两态可读）。vitest 81 绿（59+8+14）+ IAB 宽窄两档全交互实证（钳制值精确命中）+ build 绿。→ plan.todo M8 / image-viewing.md
 - **M8 图片排版与缩放预览规划定稿（仅规划未执行）**：三轮定案——①显示策略 = 原始尺寸优先 + max-width 栏宽护栏（不做铺满式；「绝不缩放」与窄屏可用互斥，护栏为定案取舍）；②构建期加工 = rehype 尺寸回填防 CLS + 独图段落 figure 化（title 出图注）；③暗色图底适配 = 统一卡片化（仅暗色垫浅色衬底+边框+圆角，透明底/白底归一、零逐图 opt-in；令牌透明化实现——亮色 transparent 观感不变；反色滤镜路线弃：invert 连明度色相一起翻，彩色失真）；懒加载定案不做。预览 = 点击正文图全屏自由缩放（滚轮/双指/双击 + 拖拽平移）自研 img-view-engine——维持零运行时依赖现状（否决 PhotoSwipe/medium-zoom）；纯函数 img-view-math + vitest、引擎 DOM 层浏览器实证（承 toc-engine 先例）。全量约束与切片 → plan.todo M8
 
 ## 2026-09-26

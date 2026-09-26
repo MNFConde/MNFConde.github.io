@@ -256,21 +256,22 @@ M8 图片排版与缩放预览（正文图居中原尺寸显示 + 构建期图�
         动画 = 打开自原图位 rect FLIP 至居中、关闭反向（prefers-reduced-motion 全跳过）；交互手势（滚轮/拖拽/pinch）不过渡
         测试 = 缩放/平移/钳制纯函数抽 src/scripts/img-view-math.js + vitest（承 notes-layout 先例）；images.js 包装/回填逻辑单测（resolveDims 依赖注入 stub）；引擎 DOM 层不单测、浏览器实证（承 toc-engine 先例）
     切片1 CSS 排版 + 暗色卡片化:
-        ☐ global.css 正文图规则（display:block + margin-inline:auto 居中、max-width:100% + height:auto 护栏、box-sizing:border-box 防边框溢栏；消费 --img-plate/--img-edge/--img-radius 三令牌）+ figure/figcaption 样式 @critical
-        ☐ theme.css：--img-plate/--img-edge/--img-radius 亮暗双块定义（亮 transparent/0；暗白衬底 + var(--line) 边 + var(--radius)）+ --scrim-view 查看器遮罩令牌 @high
-        ☐ 演示文补场景：超栏宽宽图（1600 级透明底 SVG 新占位）+ 带图注图（title）入 orig-demo（插在已完成配对之后的无配对区，护 strict 邻接） @high
-        ☐ 宽窄两档实证（小图原尺寸居中、宽图不溢出、暗色卡片化两态归一、纵横比不变形）+ build 绿 @critical
+        ✔ global.css 正文图规则（display:block + margin-inline:auto 居中、max-width:100% + height:auto 护栏、box-sizing:border-box 防边框溢栏；消费 --img-plate/--img-edge/--img-radius 三令牌）+ figure/figcaption 样式 @critical @done(26-09-27 00:48)（2cf9f5c）
+        ✔ theme.css：--img-plate/--img-edge/--img-radius 亮暗双块定义（亮 transparent/0；暗白衬底 + var(--line) 边 + var(--radius)）+ --scrim-view 查看器遮罩令牌 @high @done(26-09-27 00:48)（2cf9f5c；--scrim-view 后随切片3 实证调深 0.8 并加 --img-view-plate 恒浅衬底令牌）
+        ✔ 演示文补场景：超栏宽宽图（1600 级透明底 SVG 新占位）+ 带图注图（title）入 orig-demo（插在已完成配对之后的无配对区，护 strict 邻接） @high @done(26-09-27 00:48)（2cf9f5c；wide-demo.svg 1600×360 透明底深墨线稿）
+        ✔ 宽窄两档实证（小图原尺寸居中、宽图不溢出、暗色卡片化两态归一、纵横比不变形）+ build 绿 @critical @done(26-09-27 00:57)（IAB 1280/390 两档：小图 640 原尺寸居中偏移 0、宽图 672/343 精确钳栏、纵横比保、无横向溢出、暗色下 imgBg=#fff/边=#3a362d/角=8px 三令牌生效）
     切片2 构建期图片加工:
-        ☐ src/plugins/images.js：rehypeImages（尺寸回填 + 独图段落 figure 化 + title→figcaption；resolveDims 可注入）+ svgSize 纯函数 @critical
-        ☐ astro.config 接线（rehype 末位）+ image-size 依赖（栅格尺寸） @critical
-        ☐ vitest：figure 包装 / dims 回填 / svgSize（含 viewBox 回退） @critical
-        ☐ build 产物断言：正文 img 带 width/height、独图段落为 figure @high
+        ✔ src/plugins/images.js：rehypeImages（尺寸回填 + 独图段落 figure 化 + title→figcaption；resolveDims 可注入）+ svgSize 纯函数 @critical @done(26-09-27 00:50)（43eea0a；注：image-size 2.0.4 原生覆盖栅格+SVG 含 viewBox 回退，原计划 svgSize 自解析取消——比规划更简）
+        ✔ astro.config 接线（rehype 末位）+ image-size 依赖（栅格尺寸） @critical @done(26-09-27 00:50)（43eea0a；dependencies 增 image-size，构建期消费与 remark-directive 同类）
+        ✔ vitest：figure 包装 / dims 回填 / svgSize（含 viewBox 回退） @critical @done(26-09-27 00:50)（43eea0a；8 例：回填/未知跳过/独图包装/title 转图注并除重/混排不动/多图不动/blockquote 嵌套/空白 text 容忍）
+        ✔ build 产物断言：正文 img 带 width/height、独图段落为 figure @high @done(26-09-27 00:50)（dist/orig-demo：figure+width640/height180+figcaption、宽图 width1600/height360、title 已移除）
     切片3 缩放预览引擎:
-        ☐ img-view-math.js 纯函数（clampScale / fitScale / zoomAt / clampPan / wheelScale / pinchScale）+ vitest @critical
-        ☐ img-view-engine.js：点击接管（.note-main img，a 包裹跳过）→ 全屏浮层（scrim + img + ×）→ wheel/dblclick/pinch/drag 全交互 → Esc/背景/× 关闭；+/-/0 键缩放；焦点管理 + 滚动锁 + reduced-motion + FLIP 开合过渡 @critical
-        ☐ 布局挂载：NoteLayout + PostLayout 均 init（无正文图 no-op 零开销） @high
-        ☐ 宽窄两档全交互浏览器实证（含触屏 pinch 模拟）+ vitest 全绿 @critical
+        ✔ img-view-math.js 纯函数（clampScale / fitScale / zoomAt / clampPan / wheelScale / pinchScale）+ vitest @critical @done(26-09-27 00:56)（3db6d73；14 例；两修：clampPan 输出 -0 归一（Math.min(0,-0)=-0）、自测「中心锚 t 不动」语义写反——图心偏离中心时偏移应×倍率，引擎本对）
+        ✔ img-view-engine.js：点击接管（.note-main img，a 包裹跳过）→ 全屏浮层（scrim + img + ×）→ wheel/dblclick/pinch/drag 全交互 → Esc/背景/× 关闭；+/-/0 键缩放；焦点管理 + 滚动锁 + reduced-motion + FLIP 开合过渡 @critical @done(26-09-27 00:56)（3db6d73；实证两修：pointerdown 的 setPointerCapture 对合成/已释放指针抛 NotFoundError 致拖拽失联——try/catch 降级冒泡路径；查看器恒垫 --img-view-plate 浅衬底 + 遮罩调深 0.8——透明底深墨图在恒深遮罩上两态可读，承卡片化同理）
+        ✔ 布局挂载：NoteLayout + PostLayout 均 init（无正文图 no-op 零开销） @high @done(26-09-27 00:56)（3db6d73；引擎共享 chunk 双布局复用）
+        ✔ 宽窄两档全交互浏览器实证（含触屏 pinch 模拟）+ vitest 全绿 @critical @done(26-09-27 00:56)（IAB：开合 FLIP/dialog+aria-modal+z-80/焦点入浮层还焦原图/滚动锁解锁/滚轮指数值精确命中（1.2116/1.779）/8x 上限/拖拽钳 ±1920±360 精确/双击复位 fit/合成双指 pinch/390px 无溢出；截图经视觉模型复核）
     切片4 收尾:
-        ☐ cairn 主题笔记（image-viewing.md：显示策略 / 构建期加工 / 暗色卡片化定案与路线更替 / 自研决策）+ LOG + AGENTS 状态行 + plan 勾选 @high
+        ✔ cairn 主题笔记（image-viewing.md：显示策略 / 构建期加工 / 暗色卡片化定案与路线更替 / 自研决策）+ LOG + AGENTS 状态行 + plan 勾选 @high @done(26-09-27 01:00)
     定案记录:
         ✘ 懒加载注入（loading=lazy + decoding=async）——26-09-27 用户定案不做（原观察项撤出）
+    ✔ M8 全量落地（切片1-4）@done(26-09-27 01:00)（65f108d 规划 + 2cf9f5c + 43eea0a + 3db6d73 + 本 docs 提交；vitest 81 绿（59+8+14）+ build 绿 + IAB 宽窄两档全交互实证；教训两条入 image-viewing.md：setPointerCapture 合成指针坑、Math.min -0 坑）
