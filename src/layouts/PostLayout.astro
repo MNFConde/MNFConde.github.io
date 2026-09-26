@@ -2,7 +2,7 @@
 import BaseLayout from './BaseLayout.astro';
 import TableOfContents from '../components/TableOfContents.astro';
 
-const { frontmatter, headings } = Astro.props;
+const { frontmatter, headings, series } = Astro.props;
 const tocItems = (headings ?? []).filter((h) => h.depth >= 2); // h1 是文题（header 渲染），导航从节标题起
 const hasToc = tocItems.length >= 2; // 单节无导航意义
 ---
@@ -12,6 +12,15 @@ const hasToc = tocItems.length >= 2; // 单节无导航意义
     <article class="note-main">
       <header>
         <h1>{frontmatter.title}</h1>
+        {series && (
+          <nav class="series-bar" aria-label="系列导航">
+            <span class="series-meta">{series.name} · 第 {series.index}/{series.total} 篇</span>
+            <span class="series-links">
+              {series.prev && <a href={`/${series.prev.id}/`}>← {series.prev.title}</a>}
+              {series.next && <a href={`/${series.next.id}/`}>{series.next.title} →</a>}
+            </span>
+          </nav>
+        )}
         {frontmatter.original && (
           <div class="orig-controls">
             <button id="orig-toggle" type="button" class="orig-global" aria-pressed="false">
@@ -21,6 +30,9 @@ const hasToc = tocItems.length >= 2; // 单节无导航意义
         )}
       </header>
       <slot />
+      <footer class="back-to-index">
+        <a href="/">← 全部文章</a>
+      </footer>
     </article>
   </main>
   {frontmatter.original && (

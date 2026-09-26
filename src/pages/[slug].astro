@@ -2,21 +2,26 @@
 import { getCollection, render } from 'astro:content';
 import NoteLayout from '../layouts/NoteLayout.astro';
 import PostLayout from '../layouts/PostLayout.astro';
+import { seriesContext } from '../lib/taxonomy.js';
 
 export async function getStaticPaths() {
   const notes = await getCollection('notes');
   const posts = await getCollection('posts');
   return [
-    ...notes.map((post) => ({ params: { slug: post.id }, props: { post, isNote: true } })),
-    ...posts.map((post) => ({ params: { slug: post.id }, props: { post, isNote: false } })),
+    ...notes.map((post) => ({ params: { slug: post.id }, props: { post, isNote: true, all: [...notes, ...posts] } })),
+    ...posts.map((post) => ({ params: { slug: post.id }, props: { post, isNote: false, all: [...notes, ...posts] } })),
   ];
 }
 
-const { post, isNote } = Astro.props;
+const { post, isNote, all } = Astro.props;
 const { Content, headings } = await render(post);
 const Layout = isNote ? NoteLayout : PostLayout;
+// 聚合在路由层算好（承 M6 分工：布局只渲染、不知聚合）；series 为 null 即无系列
+const series = post.data.series
+  ? { name: post.data.series, ...seriesContext(all, post.data.series, post.id) }
+  : null;
 ---
 
-<Layout frontmatter={post.data} headings={headings}>
+<Layout frontmatter={post.data} headings={headings} series={series}>
   <Content />
 </Layout>
