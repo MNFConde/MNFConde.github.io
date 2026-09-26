@@ -59,3 +59,41 @@ describe('内容门槛：:::orig 配对 strict（构建前 CI 把关）', () => 
     expect(problems).toEqual([]);
   });
 });
+
+// 标签/系列（M7）：frontmatter 一致性。zod schema 管字段类型，跨字段关系在此把关
+// （承 M5 哲学：schema 管字段、gate 管跨字段；gate 读的是 raw frontmatter，不经 schema transform）
+describe('内容门槛：系列 frontmatter 一致性（M7）', () => {
+  it('seriesOrder 与 series 同现、同系列序号唯一', () => {
+    const problems = [];
+    const seenOrders = new Map(); // series -> Set(seriesOrder)
+    for (const path of files) {
+      const { data } = matter(readFileSync(path, 'utf8'));
+      if (data.seriesOrder !== undefined && data.series === undefined) {
+        problems.push(`${path}: seriesOrder 须与 series 同现（有 order 无 series）`);
+      }
+      if (data.series !== undefined && data.seriesOrder !== undefined) {
+        const name = String(data.series).trim();
+        const orders = seenOrders.get(name) ?? new Set();
+        if (orders.has(data.seriesOrder)) {
+          problems.push(`${path}: 系列「${name}」seriesOrder=${data.seriesOrder} 与其它文章重复`);
+        }
+        orders.add(data.seriesOrder);
+        seenOrders.set(name, orders);
+      }
+    }
+    expect(problems).toEqual([]);
+  });
+
+  it('slug 避开保留前缀（防与站点路由遮蔽）', () => {
+    const problems = files
+      .map((path) => {
+        const slug = path
+          .replace(/\\/g, '/')
+          .replace(/^src\/content\/(?:notes|posts)\//, '')
+          .replace(/\.md$/, '');
+        return ['tags', 'series', 'archive'].includes(slug.split('/')[0]) ? `${path}: slug 保留前缀「${slug.split('/')[0]}」与站点路由冲突` : null;
+      })
+      .filter(Boolean);
+    expect(problems).toEqual([]);
+  });
+});
