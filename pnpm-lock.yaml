@@ -172,6 +172,9 @@ importers:
       astro:
         specifier: ^7.3.2
         version: 7.3.2(@astrojs/markdown-remark@7.3.1)(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.3)
+      image-size:
+        specifier: ^2.0.4
+        version: 2.0.4
       remark-directive:
         specifier: ^4.0.0
         version: 4.0.0
@@ -1250,6 +1253,11 @@ packages:
 
   http-cache-semantics@4.2.0:
     resolution: {integrity: sha512-dTxcvPXqPvXBQpq5dUr6mEMJX4oIEFv6bwom3FDwKRDsuIjjJGANqhBuoAn9c1RQJIdAKav33ED65E2ys+87QQ==}
+
+  image-size@2.0.4:
+    resolution: {integrity: sha512-QRUkFFsRV/6fuESxb9Vkq+a0LkSrgKXuc2NEqfikiXxxN/G3tjWt5EVUlMaImRBZRZK/jRBEbYvpPYZL8t08Zw==}
+    engines: {node: '>=18'}
+    hasBin: true
 
   inline-style-parser@0.2.7:
     resolution: {integrity: sha512-Nb2ctOyNR8DqQoR0OwRG95uNWIC0C1lCgf5Naz5H6Ji72KZ8OcFZLz2P5sNgwlyoJ8Yif11oMuYs5pBQa86csA==}
@@ -3182,6 +3190,8 @@ snapshots:
   html-void-elements@3.0.0: {}
 
   http-cache-semantics@4.2.0: {}
+
+  image-size@2.0.4: {}
 
   inline-style-parser@0.2.7: {}
 
