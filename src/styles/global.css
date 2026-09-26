@@ -293,6 +293,13 @@ body {
   color: var(--ink-soft);
 }
 
+/* 多标签 AND 交集为空时的提示（引擎 toggle hidden；列表外独立元素，防被 items 捕获） */
+.filter-empty {
+  margin: 0 0 1.3rem;
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+}
+
 /* —— M7 文内系列导航 + 文末回链 —— */
 .series-bar {
   display: flex;
