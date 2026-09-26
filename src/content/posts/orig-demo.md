@@ -4,6 +4,9 @@ description: M5 原文对照的写作与交互示例：邻接原文块、图片�
 date: 2026-09-19
 original: true
 originalDefault: hidden
+tags: [原文对照, 翻译, 演示]
+series: 站点导览
+seriesOrder: 3
 ---
 
 :::essay
