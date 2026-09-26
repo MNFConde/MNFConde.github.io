@@ -240,3 +240,37 @@ M7.1 多选标签过滤（26-09-26 用户复核触发）:
         ✔ 浏览器实证（AND 交集/两维互斥/全部清空/空态显隐/多标签深链/两维同现 URL 系列优先/后退还原）+ build/test 绿 @critical @done(26-09-26 22:15)（九场景全过：排版+演示→notes-demo、+翻译→∅ 出「无匹配文章」、-翻译复原、标签→系列双向清空、全部一键清空、?tag=a&tag=b 深链载入还原、?series=&tag= 同现系列优先、后退 popstate 复原——首读双空为 bfcache 恢复中途撕裂读数，settle 后正确；vitest 59 绿不变（引擎 DOM 层无单测，承 toc-engine 先例））
         ✔ 文档收尾：plan 勾选 + cairn/taxonomy.md（多选定案 + 系列正序维持）+ LOG + AGENTS 状态行 @high @done(26-09-26 22:15)
     ✔ M7.1 全量落地（切片1）@done(26-09-26 22:15)（b21feb4）
+
+M8 图片排版与缩放预览（正文图居中原尺寸显示 + 构建期图片加工 + 点击自由缩放查看器）:
+    依据：26-09-27 三轮讨论定案（一轮盘点现状——全站无 img 规则，Markdown 图渲染 <p><img></p> 默认 inline 随正文列；二轮定显示策略与预览；三轮定构建期加工范围与暗色卡片化路线）
+    验收：正文图居中且按原始尺寸显示（不放大不铺满）；超栏宽图钳至栏宽不横向溢出（桌面 42rem 栏 / 窄屏 375px 级）；构建期正文图带 width/height（防 CLS）且独图段落 figure 化（title 出图注）；暗色下正文图统一浅色衬底卡片（透明底/白底截图归一）；点击正文图全屏预览——滚轮/双指/双击缩放、拖拽平移、Esc/背景/× 关闭、键盘可达（Enter 开、+/-/0 缩放）；prefers-reduced-motion 无过渡；vitest 59+新增全绿 + 宽窄两档浏览器实证
+    既定约束（26-09-27 讨论定案）:
+        显示策略 = 原始尺寸优先 + 护栏钳制：装得下（≤ 栏宽）的图按 intrinsic 尺寸居中，仅超栏宽图被 max-width:100% 钳到栏宽（height:auto 保纵横比）——明确不做 width:100% 铺满式；「绝不缩放」与窄屏可用互斥，护栏为定案取舍（img 默认 width:auto 即 intrinsic，本约束一半是「不加铺满规则」）
+        范围 = 正文内容图（.note-main 内 Markdown img，notes/posts 双布局同享）；写作惯例 = 图独立成段（承 M5「图片富内容自由直排」）；img 被 <a> 包裹时预览不接管（点击跟链接走）；UI 图标/边注/TOC/首页列表不涉
+        构建期加工（rehype src/plugins/images.js，astro.config rehype 末位；content-gate 只回放 remark 互不干扰）= ①尺寸回填防 CLS：public/ 本地图读实尺寸注入 width/height（栅格走 image-size 新依赖，SVG 自解析 root width/height 属性、缺则 viewBox；远程/缺文件跳过并告警）；②figure 化：独图段落 p>img → figure，title 属性存在则出 figcaption（title 移除防悬浮重复）；段内混排图/多图段落不包装（护 M2 分段与正文结构）
+        暗色图底适配（三轮定案，路线更替）= 暗色统一卡片化：仅暗色两通道给正文图垫浅色衬底 + 边框 + 圆角，透明底线稿与白底截图归一为同一张卡片、零逐图 opt-in；实现走令牌透明化——theme.css 增 --img-plate/--img-edge/--img-radius 三令牌（亮色 transparent/0 观感不变，暗色白衬底/--line 边/--radius），global.css 结构规则只消费——外观单点入口不破（承 M1.5）；反色滤镜路线弃（invert 连明度色相一起翻，彩色失真；理想映射「只翻明度保色相」仅 SVG 内联挂 CSS 变量可精确，PNG 像素无颜色语义不可挂）；懒加载定案不做（三轮用户定案，观察项撤出）
+        预览 = 自研轻量查看器（img-view-engine）：维持全站零运行时依赖现状（package.json 依赖全为构建期）——否决 PhotoSwipe（首个运行时依赖且闲置过半）/ medium-zoom（无自由缩放）；承 toc-engine 自研先例
+        缩放交互 = 初值 fit-to-viewport（min(1, 视口/图)——小图 1x 大图等比入屏）；滚轮缩放（以指针位置为锚点）、双击 fit↔2×fit、双指 pinch（pointer events 两点距离比）、拖拽平移（clampPan 边界钳制不丢图）；缩放范围 clamp 0.2x–8x
+        关闭与可达 = Esc / 点击背景 / 右上 ×；正文图 tabindex+role=button（Enter/Space 开），浮层内 +/=/- 缩放、0 复位；打开聚焦关闭钮、关闭还焦原图；打开期间 html 滚动锁定（新定，M4 模态无此先例）；浮层 role=dialog + aria-modal
+        几何 = 浮层 fixed 全屏覆盖式 z-80（避开 theme-toggle 70/模态 60/scrim 50），不改主栏几何、不动正文 DOM 结构——规避 notes-engine 重排耦合（承 M6 TOC 定案）
+        动画 = 打开自原图位 rect FLIP 至居中、关闭反向（prefers-reduced-motion 全跳过）；交互手势（滚轮/拖拽/pinch）不过渡
+        测试 = 缩放/平移/钳制纯函数抽 src/scripts/img-view-math.js + vitest（承 notes-layout 先例）；images.js 包装/回填逻辑单测（resolveDims 依赖注入 stub）；引擎 DOM 层不单测、浏览器实证（承 toc-engine 先例）
+    切片1 CSS 排版 + 暗色卡片化:
+        ☐ global.css 正文图规则（display:block + margin-inline:auto 居中、max-width:100% + height:auto 护栏、box-sizing:border-box 防边框溢栏；消费 --img-plate/--img-edge/--img-radius 三令牌）+ figure/figcaption 样式 @critical
+        ☐ theme.css：--img-plate/--img-edge/--img-radius 亮暗双块定义（亮 transparent/0；暗白衬底 + var(--line) 边 + var(--radius)）+ --scrim-view 查看器遮罩令牌 @high
+        ☐ 演示文补场景：超栏宽宽图（1600 级透明底 SVG 新占位）+ 带图注图（title）入 orig-demo（插在已完成配对之后的无配对区，护 strict 邻接） @high
+        ☐ 宽窄两档实证（小图原尺寸居中、宽图不溢出、暗色卡片化两态归一、纵横比不变形）+ build 绿 @critical
+    切片2 构建期图片加工:
+        ☐ src/plugins/images.js：rehypeImages（尺寸回填 + 独图段落 figure 化 + title→figcaption；resolveDims 可注入）+ svgSize 纯函数 @critical
+        ☐ astro.config 接线（rehype 末位）+ image-size 依赖（栅格尺寸） @critical
+        ☐ vitest：figure 包装 / dims 回填 / svgSize（含 viewBox 回退） @critical
+        ☐ build 产物断言：正文 img 带 width/height、独图段落为 figure @high
+    切片3 缩放预览引擎:
+        ☐ img-view-math.js 纯函数（clampScale / fitScale / zoomAt / clampPan / wheelScale / pinchScale）+ vitest @critical
+        ☐ img-view-engine.js：点击接管（.note-main img，a 包裹跳过）→ 全屏浮层（scrim + img + ×）→ wheel/dblclick/pinch/drag 全交互 → Esc/背景/× 关闭；+/-/0 键缩放；焦点管理 + 滚动锁 + reduced-motion + FLIP 开合过渡 @critical
+        ☐ 布局挂载：NoteLayout + PostLayout 均 init（无正文图 no-op 零开销） @high
+        ☐ 宽窄两档全交互浏览器实证（含触屏 pinch 模拟）+ vitest 全绿 @critical
+    切片4 收尾:
+        ☐ cairn 主题笔记（image-viewing.md：显示策略 / 构建期加工 / 暗色卡片化定案与路线更替 / 自研决策）+ LOG + AGENTS 状态行 + plan 勾选 @high
+    定案记录:
+        ✘ 懒加载注入（loading=lazy + decoding=async）——26-09-27 用户定案不做（原观察项撤出）
