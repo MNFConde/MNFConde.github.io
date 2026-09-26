@@ -27,9 +27,13 @@ The value of parallel reading lies in checking the translation at any moment: th
 Section headings can carry originals too. When expanded, the original sits right beneath its block in soft italic; the pair stays compact while spacing between pairs keeps the normal paragraph rhythm.
 :::
 
-![对照演示占位图](/img/orig-demo.svg)
+![对照演示占位图](/img/orig-demo.svg "占位图也能带图注：title 属性渲染为 figcaption")
 
 图片没有原文，自成一块、不成对也不参与配对；它上下的对照组互不受影响。
+
+![宽图与透明底演示：超出栏宽钳到栏宽、原始尺寸优先](/img/wide-demo.svg)
+
+宽图按原始尺寸优先、超出栏宽才钳制；透明底的深色线稿在暗色模式下靠浅色衬底托起，与白底图归一为同一张卡片。点击任意图片可以打开自由缩放的预览。
 
 下面这一段是作者自己的话，没有对应的原文，因此不写 orig 块——邻接配对天然容忍无原文的块，这正是选择邻接式而非整体包裹的原因之一。段尾没有角标，就是没有原文的意思。
 

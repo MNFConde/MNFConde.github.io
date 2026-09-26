@@ -40,6 +40,31 @@ body {
   color: var(--accent);
 }
 
+/* —— M8 正文图：原始尺寸优先居中 + 栏宽护栏（不铺满；display:block 顺带消 inline 基线缝隙）；
+   暗色垫衬底成卡片——三令牌亮色全透明/0，观感单点仍归 theme.css —— */
+.note-main img {
+  box-sizing: border-box; /* max-width 连边框一起钳，防暗色 1px 边溢栏 */
+  display: block;
+  margin-inline: auto;
+  max-width: 100%;
+  height: auto;
+  background: var(--img-plate);
+  border: 1px solid var(--img-edge);
+  border-radius: var(--img-radius);
+}
+
+/* 独图段落由构建期 figure 化（M8 images.js）；节拍对齐 p，图注小一号居中 */
+.note-main figure {
+  margin: 0 0 1.1rem;
+}
+
+.note-main figcaption {
+  margin-top: 0.45rem;
+  font-size: 0.86rem;
+  color: var(--ink-soft);
+  text-align: center;
+}
+
 /* 边注：Tufte float 技巧——行内原位 float 出主栏、落右侧栏，连续边注靠 clear 堆叠 */
 .margin-note {
   float: right;

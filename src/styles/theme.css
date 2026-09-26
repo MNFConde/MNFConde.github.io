@@ -21,6 +21,7 @@
 
   /* —— 召唤态层次（M3 pinned / M4 模态；黑系阴影亮暗通用，避免 ink 在暗色下发白）—— */
   --scrim: rgb(15 14 12 / 0.24);                    /* 聚光灯遮罩 */
+  --scrim-view: rgb(15 14 12 / 0.66);               /* 图片查看器遮罩（M8，比聚光灯深一档） */
   --shadow-card: 0 10px 28px rgb(15 14 12 / 0.22);  /* pinned 浮层阴影 */
   --shadow-modal: 0 18px 48px rgb(15 14 12 / 0.3);  /* 窄屏居中模态阴影 */
 
@@ -43,6 +44,11 @@
   --line: #ddd6c6;          /* 分隔线 */
   --accent: #8c3630;        /* 强调色（锚点/链接/随笔竖线） */
   --essay-bg: #f2efe3;      /* 随笔底色 */
+
+  /* —— 正文图卡片化（M8）：亮色三令牌全透明/0 观感不变，暗色垫白衬底归一透明底与白底截图 —— */
+  --img-plate: transparent;  /* 图底衬色 */
+  --img-edge: transparent;   /* 图边框色 */
+  --img-radius: 0;           /* 图圆角 */
 }
 
 /* —— 暗色画布（跟系统；维护提示：改暗色时与下方 data-theme 块同步）—— */
@@ -55,6 +61,9 @@
     --line: #3a362d;
     --accent: #c9766a;
     --essay-bg: #232219;
+    --img-plate: #ffffff;
+    --img-edge: var(--line);
+    --img-radius: var(--radius);
   }
 }
 
@@ -67,4 +76,7 @@
   --line: #3a362d;
   --accent: #c9766a;
   --essay-bg: #232219;
+  --img-plate: #ffffff;
+  --img-edge: var(--line);
+  --img-radius: var(--radius);
 }

@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="360" viewBox="0 0 1600 360" role="img" aria-label="宽图与透明底演示">
+  <!-- 透明底 + 深墨笔画：亮色下随纸面直排；暗色下无衬底几乎隐形，靠 M8 卡片化衬底托起 -->
+  <g fill="none" stroke="#23231f" stroke-width="3">
+    <rect x="40" y="70" width="1520" height="220" rx="10"/>
+    <line x1="430" y1="70" x2="430" y2="290"/>
+    <line x1="820" y1="70" x2="820" y2="290"/>
+    <line x1="1210" y1="70" x2="1210" y2="290"/>
+    <circle cx="235" cy="180" r="52"/>
+    <path d="M 900 220 L 965 140 L 1030 220 Z"/>
+    <path d="M 1310 230 q 40 -90 80 0 q 40 60 80 -20" stroke-width="4"/>
+  </g>
+  <g font-family="Georgia, serif" font-style="italic" fill="#23231f" text-anchor="middle">
+    <text x="800" y="40" font-size="26">wide-demo · 1600 × 360 · 透明底</text>
+    <text x="235" y="330" font-size="18">超出栏宽钳到栏宽</text>
+    <text x="625" y="330" font-size="18">原始尺寸优先</text>
+    <text x="1015" y="330" font-size="18">暗色下靠衬底显形</text>
+    <text x="1400" y="330" font-size="18">点击可自由缩放</text>
+  </g>
+</svg>
