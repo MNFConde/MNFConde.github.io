@@ -21,19 +21,23 @@ const series = collectSeries(all);
             <button type="button" class="filter-chip" data-filter="all" aria-pressed="true">
               全部
             </button>
-            {series.length > 0 && <span class="filter-label">系列</span>}
-            {series.map((s) => (
-              <button
-                type="button"
-                class="filter-chip"
-                data-filter="series"
-                data-value={s.name}
-                aria-pressed="false"
-              >
-                {s.name}<span class="filter-count">{s.count}</span>
-              </button>
-            ))}
           </div>
+          {series.length > 0 && (
+            <div class="filter-group">
+              <span class="filter-label">系列</span>
+              {series.map((s) => (
+                <button
+                  type="button"
+                  class="filter-chip"
+                  data-filter="series"
+                  data-value={s.name}
+                  aria-pressed="false"
+                >
+                  {s.name}<span class="filter-count">{s.count}</span>
+                </button>
+              ))}
+            </div>
+          )}
           {tags.length > 0 && (
             <div class="filter-group">
               <span class="filter-label">标签</span>

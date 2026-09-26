@@ -236,7 +236,7 @@ M7.1 多选标签过滤（26-09-26 用户复核触发）:
         范围 = filter-engine.js + index.astro + global.css 小改；taxonomy/schema/gate/系列条不动；引擎 DOM 层无单测（承 M6 toc-engine 先例），实证走浏览器
     切片1 引擎 + UI + 实证:
         ✔ filter-engine：activeTags Set 多选 + activeSeries 单选互斥 + 全部 chip + 空态 toggle + 重复参数读写 @critical @done(26-09-26 22:15)（b21feb4）
-        ✔ index.astro：全部 chip（首组首位）+ filter-empty 空态元素；global.css：filter-empty 样式 @high @done(26-09-26 22:15)（b21feb4）
+        ✔ index.astro：全部 chip + filter-empty 空态元素；global.css：filter-empty 样式 @high @done(26-09-26 22:15)（b21feb4；注：全部 chip 初版落系列行首，26-09-26 用户复核改独占一行）
         ✔ 浏览器实证（AND 交集/两维互斥/全部清空/空态显隐/多标签深链/两维同现 URL 系列优先/后退还原）+ build/test 绿 @critical @done(26-09-26 22:15)（九场景全过：排版+演示→notes-demo、+翻译→∅ 出「无匹配文章」、-翻译复原、标签→系列双向清空、全部一键清空、?tag=a&tag=b 深链载入还原、?series=&tag= 同现系列优先、后退 popstate 复原——首读双空为 bfcache 恢复中途撕裂读数，settle 后正确；vitest 59 绿不变（引擎 DOM 层无单测，承 toc-engine 先例））
         ✔ 文档收尾：plan 勾选 + cairn/taxonomy.md（多选定案 + 系列正序维持）+ LOG + AGENTS 状态行 @high @done(26-09-26 22:15)
     ✔ M7.1 全量落地（切片1）@done(26-09-26 22:15)（b21feb4）
