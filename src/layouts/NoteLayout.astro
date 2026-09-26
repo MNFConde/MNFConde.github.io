@@ -32,6 +32,10 @@ const hasToc = tocItems.length >= 2; // 单节无导航意义
     import { initNotesEngine } from '../scripts/notes-engine.js';
     initNotesEngine();
   </script>
+  <script>
+    import { initImgViewEngine } from '../scripts/img-view-engine.js';
+    initImgViewEngine();
+  </script>
   {hasToc && <TableOfContents items={tocItems} />}
   {hasToc && (
     <script>

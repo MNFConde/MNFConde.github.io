@@ -6,6 +6,7 @@
     <line x1="820" y1="70" x2="820" y2="290"/>
     <line x1="1210" y1="70" x2="1210" y2="290"/>
     <circle cx="235" cy="180" r="52"/>
+    <path d="M 520 130 h 130 v 100 h -130 Z" stroke-dasharray="10 8"/>
     <path d="M 900 220 L 965 140 L 1030 220 Z"/>
     <path d="M 1310 230 q 40 -90 80 0 q 40 60 80 -20" stroke-width="4"/>
   </g>

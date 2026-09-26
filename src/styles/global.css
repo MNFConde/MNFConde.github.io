@@ -65,6 +65,84 @@ body {
   text-align: center;
 }
 
+/* —— M8 点击缩放预览浮层：fixed 覆盖式不改主栏几何（承 M6 规避 notes-engine 重排），
+   z-80 避开全部既有层（theme-toggle 70 / 模态 60 / scrim 50）—— */
+.note-main img.is-zoomable {
+  cursor: zoom-in;
+}
+
+.img-view {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+}
+
+.img-view-backdrop {
+  position: absolute;
+  inset: 0;
+  background: var(--scrim-view);
+  opacity: 0;
+  transition: opacity 0.22s ease;
+}
+
+.img-view.is-open .img-view-backdrop {
+  opacity: 1;
+}
+
+.img-view-stage {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  touch-action: none; /* pinch/拖拽由引擎自管，禁浏览器手势 */
+  user-select: none;
+  cursor: grab;
+}
+
+.img-view-stage:active {
+  cursor: grabbing;
+}
+
+.img-view-img {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform-origin: center; /* 与 img-view-math 状态模型对齐（t = 图中心偏移） */
+  background: var(--img-view-plate); /* 遮罩恒深 → 恒垫浅衬底，透明底深墨图两态可读（承暗色卡片化同理） */
+  border-radius: calc(var(--radius) / 2);
+}
+
+.img-view-img.is-anim {
+  transition: transform 0.22s ease;
+}
+
+.img-view-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  width: 2.2rem;
+  height: 2.2rem;
+  font-size: 1.05rem;
+  line-height: 1;
+  color: var(--ink-soft);
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.img-view-close:hover,
+.img-view-close:focus-visible {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .img-view-backdrop,
+  .img-view-img.is-anim {
+    transition: none;
+  }
+}
+
 /* 边注：Tufte float 技巧——行内原位 float 出主栏、落右侧栏，连续边注靠 clear 堆叠 */
 .margin-note {
   float: right;
