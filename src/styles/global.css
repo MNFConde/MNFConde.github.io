@@ -69,6 +69,7 @@ body {
    z-80 避开全部既有层（theme-toggle 70 / 模态 60 / scrim 50）—— */
 .note-main img.is-zoomable {
   cursor: zoom-in;
+  -webkit-user-drag: none; /* 老 Safari 不认 draggable=false，CSS 侧补刀（M8.1 DnD 劫持修复） */
 }
 
 .img-view {
@@ -109,6 +110,7 @@ body {
   transform-origin: center; /* 与 img-view-math 状态模型对齐（t = 图中心偏移） */
   background: var(--img-view-plate); /* 遮罩恒深 → 恒垫浅衬底，透明底深墨图两态可读（承暗色卡片化同理） */
   border-radius: calc(var(--radius) / 2);
+  -webkit-user-drag: none; /* 同上：Safari 侧防原生拖放幽灵 */
 }
 
 .img-view-img.is-anim {

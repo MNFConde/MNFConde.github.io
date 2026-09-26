@@ -61,13 +61,16 @@ export function initImgViewEngine(root = document) {
     overlay.style.display = 'none';
     overlay.innerHTML = [
       '<div class="img-view-backdrop"></div>',
-      '<div class="img-view-stage"><img class="img-view-img" alt=""></div>',
+      '<div class="img-view-stage"><img class="img-view-img" alt="" draggable="false"></div>',
       '<button type="button" class="img-view-close" aria-label="关闭预览">✕</button>',
     ].join('');
     stage = overlay.querySelector('.img-view-stage');
     img = overlay.querySelector('.img-view-img');
     closeBtn = overlay.querySelector('.img-view-close');
 
+    // 原生图片拖放兜底：img 默认 draggable，真实鼠标拖几像素即被 DnD 接管、
+    // pointermove 流截断（拖拽幽灵跟随）——draggable=false 断根 + dragstart 阻断双保险
+    stage.addEventListener('dragstart', (e) => e.preventDefault());
     stage.addEventListener('pointerdown', onPointerDown);
     stage.addEventListener('pointermove', onPointerMove);
     stage.addEventListener('pointerup', onPointerUp);
@@ -141,6 +144,7 @@ export function initImgViewEngine(root = document) {
   // —— 手势：拖拽平移 + 双指 pinch（pointer events 统一鼠标/触摸）——
   function onPointerDown(e) {
     if (e.pointerType === 'mouse' && e.button !== 0) return;
+    img.classList.remove('is-anim'); // 拖拽即时跟手：摘掉开合遗留的 transform 过渡
     try {
       stage.setPointerCapture(e.pointerId); // 合成/已释放指针会抛 NotFoundError，捕获降级为冒泡路径
     } catch {}
@@ -234,6 +238,7 @@ export function initImgViewEngine(root = document) {
   for (const el of imgs) {
     el.classList.add('is-zoomable');
     el.tabIndex = 0;
+    el.draggable = false; // 同因：防原生拖放幽灵与 click 抢手势
     el.setAttribute('role', 'button');
     el.setAttribute('aria-label', `放大预览：${el.alt || '图片'}`);
     el.addEventListener('click', () => open(el));

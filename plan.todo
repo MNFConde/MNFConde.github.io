@@ -275,3 +275,11 @@ M8 图片排版与缩放预览（正文图居中原尺寸显示 + 构建期图�
     定案记录:
         ✘ 懒加载注入（loading=lazy + decoding=async）——26-09-27 用户定案不做（原观察项撤出）
     ✔ M8 全量落地（切片1-4）@done(26-09-27 01:00)（65f108d 规划 + 2cf9f5c + 43eea0a + 3db6d73 + 本 docs 提交；vitest 81 绿（59+8+14）+ build 绿 + IAB 宽窄两档全交互实证；教训两条入 image-viewing.md：setPointerCapture 合成指针坑、Math.min -0 坑）
+
+M8.1 查看器拖拽修复（26-09-27 用户真机复核触发）:
+    依据：真实鼠标拖拽「放大到很大也只能拖一点、未超屏时像拖住缩略图」；诊断 = 原生图片拖放（DnD）劫持 pointer 流——img 默认 draggable，拖动数像素即被浏览器接管、pointermove 截断、半透明拖拽幽灵跟随（「缩略图」即幽灵本体）；合成事件不可信不触发 DnD，自动化实证全绿未覆盖（盲区，教训入 image-viewing.md「真实输入与合成输入行为分叉律」）；未超屏完全拖不动为钳制设计（防丢图）非缺陷
+    切片1 修复:
+        ✔ img-view-engine：查看器 img draggable=false + stage dragstart preventDefault 双保险；正文接管图同步 draggable=false；pointerdown 即摘 is-anim（开合过渡残留致拖拽不跟手顺修） @critical @done(26-09-27 01:05)
+        ✔ global.css：-webkit-user-drag:none 两处（Safari 不认属性侧的补刀） @high @done(26-09-27 01:05)
+        ✔ 回归：vitest 81 绿 + build 绿 + IAB 断言（draggable 属性落位 / dragstart defaultPrevented / 拖拽路径钳制无回归：+400 纵向精确钳 352.8 上限） @critical @done(26-09-27 01:06)（真机手感复核归用户，通过后推送）
+        ✔ 教训沉淀：image-viewing.md 教训节新增 DnD 劫持条 + 分叉律总纲；LOG 置顶条目 @high @done(26-09-27 01:08)

@@ -33,6 +33,8 @@ M8 之前全站没有任何 `img` CSS 规则：Markdown 图渲染 `<p><img></p>`
 ## 教训
 
 - **合成指针事件下 `setPointerCapture` 抛 NotFoundError**：pointerdown 处理器在 capture 抛错时中断、后续 pointermove 全被 `pointers.has()` 拒收——拖拽整体失联（真实输入不触发，单测/自动化必踩）。修法：try/catch 降级为冒泡路径。教训：**注册表先写、副作用后做**，或副作用必须隔离在 try 里。
+- **原生图片拖放（DnD）劫持 pointer 流（M8.1，真机复核抓出）**：`<img>` 默认 draggable，真实鼠标拖动数像素即被浏览器 DnD 接管——pointermove 流从此截断、半透明拖拽幽灵跟随。观感 = 「每次只能拖一点」（dragstart 前那几像素）+「像拖住一个缩略图」（幽灵本体）。修法：接管图 `draggable=false` + stage `dragstart` preventDefault 双保险 + `-webkit-user-drag:none`（Safari 不认属性侧）。**合成 PointerEvent 是不可信事件，不触发原生 DnD**——昨日自动化实证全绿仍带病发布。
+- **真实输入与合成输入行为分叉律**（上两条与本条的总纲）：DnD、setPointerCapture、`document.hasFocus()` 系键鼠事件都有「可信事件才走」的浏览器原生路径——**纯合成事件的实证绿 ≠ 真机可用**；手势类交互至少要一轮真机复核才能声明完成（M7 的 IAB 非前台输入不落页是同族）。
 - **`Math.min(0, -0) === -0`**：clampPan 输出 `-0` 会使样式串出现 `translate(-0px)` 且 `Object.is` 断言红——钳制结果 `+ 0` 归一。
 - 自测也会错：初版「中心锚缩放 t 不动」的断言语义写反（图心不在中心时偏移应×倍率）——引擎对、测试错；修测试而非改引擎前先重推数学。
 
