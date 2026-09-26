@@ -4,6 +4,7 @@
 
 ## 2026-09-26
 
+- **M7.1 多选标签落地（用户复核定案）**：互斥模型修正——标签×标签可叠加（AND 交集逐层收窄）、标签×系列/系列×系列维持互斥（UI 双向清空 + URL 两维同现系列优先）；「全部」chip 一键清空；空交集「无匹配文章」提示；深链升级重复参数 ?tag=a&tag=b。同批复核定案：**系列视图正序维持**（seriesOrder 的意义 = 阅读序脱离发布日期，倒排会与角标/上下篇矛盾）。九场景浏览器实证（含 bfcache 后退撕裂读数甄别——settle 后正确非 bug）。→ plan.todo M7.1 / taxonomy.md
 - **M7 标签与系列全量落地**：tags/series/seriesOrder 双 collection 可选字段（存量零改动）+ 纯 frontmatter 反向聚合（src/lib/taxonomy.js，空标签天然不存在）；首页双维过滤 chip 排（系列=特殊标签维度，用户定案）→ filter-engine 显隐 + 系列按 seriesOrder 重排 + 第 n/N 角标 + ?tag=/?series= 深链（载入/popstate 还原、失效深链忽略）；文内系列条（序/上下篇）+ 文末回链「← 全部文章」；跨字段一致性归 content-gate（承 M5 哲学）。**实证抓出并修复**：角标按构建序分配致系列视图倒挂（教训：标注序号跟显示序）；另记 IAB 非前台真实输入不落页（环境限制）。vitest 59 绿（49+10）+ build 绿 + 浏览器全交互实证。→ plan.todo M7 / taxonomy.md
 - **M6 标题导航 TOC 全量落地**：render().headings 数据源 + 自建 toc-engine（状态单布尔、断点只改 CSS 形态：桌面左缘竖排窄轨 → fixed 面板 / 窄屏角标 → 居中模态 + scrim 复用 M4 几何）；面板 fixed 覆盖式不改主栏几何（规避 notes-engine 重排耦合）；scroll-spy IntersectionObserver + 尾节全视口观察修复页尾钳制坑；渲染门槛 = 节标题 ≥2。**结构重构随行**：抽 PostLayout.astro，[slug].astro 回归纯路由（审查结论：全仓 ≤500 行无忧、分层健康，观察项 = BaseLayout 站点件区 + global.css 拆分，均 @low 暂不动）。vitest 49 绿 + build 绿 + 宽窄两档浏览器实证（窄轨/面板/模态/跳转/点亮/Escape/尾节）。→ plan.todo M6 / toc.md
 
