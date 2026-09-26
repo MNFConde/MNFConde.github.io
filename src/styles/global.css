@@ -230,6 +230,93 @@ body {
   margin-right: 0.6em;
 }
 
+/* —— M7 首页双维过滤：系列/标签 chip 排 + 系列视图角标 ——
+   无 JS 时 chips 是无效按钮、列表完整可读（渐进增强）；样式消费既有令牌，无新令牌需求 */
+.filter-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  margin: 0 0 2rem;
+}
+
+.filter-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.filter-label {
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+  margin-right: 0.15rem;
+}
+
+.filter-chip {
+  font: inherit;
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 0.12rem 0.6rem;
+  cursor: pointer;
+}
+
+.filter-chip:hover,
+.filter-chip[aria-pressed='true'] {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+/* 系列段视觉区分：淡底胶囊（tag 段素描边） */
+.filter-chip[data-filter='series'] {
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
+}
+
+.filter-chip .filter-count {
+  margin-left: 0.3em;
+  font-size: 0.82em;
+  opacity: 0.75;
+}
+
+/* 显隐模型的 hidden 兜底（防未来 display 覆盖使 hidden 失效） */
+.post-list li[hidden] {
+  display: none;
+}
+
+/* 系列视图「第 n/N 篇」角标（引擎注入，仅系列视图在场） */
+.filter-badge {
+  display: inline-block;
+  margin-left: 0.5em;
+  font-size: 0.8em;
+  color: var(--ink-soft);
+}
+
+/* —— M7 文内系列导航 + 文末回链 —— */
+.series-bar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.3rem 1rem;
+  margin: -1.2rem 0 1.6rem;
+  font-size: 0.88rem;
+  color: var(--ink-soft);
+}
+
+.series-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.back-to-index {
+  margin-top: 3rem;
+  padding-top: 1.2rem;
+  border-top: 1px solid var(--line);
+  font-size: 0.9rem;
+}
+
 blockquote {
   margin: 1.2rem 0;
   padding: 0.2rem 1rem;

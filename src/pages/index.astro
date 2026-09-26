@@ -1,10 +1,13 @@
 ---
 import { getCollection } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
+import { collectSeries, collectTags } from '../lib/taxonomy.js';
 
 const byDate = (a, b) => (b.data.date?.getTime() ?? 0) - (a.data.date?.getTime() ?? 0);
 const all = [...(await getCollection('notes')), ...(await getCollection('posts'))].sort(byDate);
 const fmt = (d) => d.toISOString().slice(0, 10);
+const tags = collectTags(all);
+const series = collectSeries(all);
 ---
 
 <BaseLayout title="Blog">
@@ -12,10 +15,50 @@ const fmt = (d) => d.toISOString().slice(0, 10);
     <article class="note-main">
       <h1 class="site-title">Blog</h1>
       <p class="site-intro">以「笔记模式」写作的个人博客：正文与边注同屏，随笔嵌在栏内。</p>
-      <ul class="post-list">
+      {(series.length > 0 || tags.length > 0) && (
+        <nav class="filter-bar" data-filter-bar aria-label="筛选文章">
+          {series.length > 0 && (
+            <div class="filter-group">
+              <span class="filter-label">系列</span>
+              {series.map((s) => (
+                <button
+                  type="button"
+                  class="filter-chip"
+                  data-filter="series"
+                  data-value={s.name}
+                  aria-pressed="false"
+                >
+                  {s.name}<span class="filter-count">{s.count}</span>
+                </button>
+              ))}
+            </div>
+          )}
+          {tags.length > 0 && (
+            <div class="filter-group">
+              <span class="filter-label">标签</span>
+              {tags.map((t) => (
+                <button
+                  type="button"
+                  class="filter-chip"
+                  data-filter="tag"
+                  data-value={t.tag}
+                  aria-pressed="false"
+                >
+                  {t.tag}<span class="filter-count">{t.count}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </nav>
+      )}
+      <ul class="post-list" data-filter-list>
         {
           all.map((post) => (
-            <li>
+            <li
+              data-tags={JSON.stringify(post.data.tags ?? [])}
+              data-series={post.data.series ?? ''}
+              data-order={post.data.seriesOrder ?? ''}
+            >
               <a href={`/${post.id}/`}>{post.data.title}</a>
               {post.data.description && <p class="post-desc">{post.data.description}</p>}
               {post.data.date && <time datetime={fmt(post.data.date)}>{fmt(post.data.date)}</time>}
@@ -26,4 +69,8 @@ const fmt = (d) => d.toISOString().slice(0, 10);
       <p class="site-nav"><a href="/archive/">全部归档 →</a></p>
     </article>
   </main>
+  <script>
+    import { initFilterEngine } from '../scripts/filter-engine.js';
+    initFilterEngine();
+  </script>
 </BaseLayout>
