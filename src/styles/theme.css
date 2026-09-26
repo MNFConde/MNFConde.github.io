@@ -15,6 +15,9 @@
   --note-gap: 1rem;         /* 边注纵向堆叠间距（M3 布局引擎读取） */
   --dim-opacity: 0.35;      /* 悬停联动时非关联边注的暗化不透明度（M3） */
   --radius: 8px;            /* 卡片圆角（随笔/折叠条/模态） */
+  --toc-rail-w: 2.1rem;     /* TOC 折叠窄轨宽（M6） */
+  --toc-panel-w: 15rem;     /* TOC 展开面板宽（M6） */
+  --toc-scroll-mt: 1.2rem;  /* TOC 锚点跳转的标题上方空隙（M6） */
 
   /* —— 召唤态层次（M3 pinned / M4 模态；黑系阴影亮暗通用，避免 ink 在暗色下发白）—— */
   --scrim: rgb(15 14 12 / 0.24);                    /* 聚光灯遮罩 */
@@ -29,6 +32,7 @@
   --font-size-note: 0.86rem;
   --font-size-essay: 0.95rem;
   --font-size-orig: 0.95rem; /* 原文对照插行文字（M5） */
+  --font-size-toc: 0.84rem;  /* TOC 条目文字（M6） */
   --orig-tuck: -0.55rem;     /* 原文插行上提量：吃进译文段下边距，组内紧凑（M5） */
   --orig-indent: 1.1rem;     /* 原文插行左缩进（M5） */
 

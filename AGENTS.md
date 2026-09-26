@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Blog —— 个人博客（Astro 7 + GitHub Pages 用户站 [MNFConde.github.io](https://MNFConde.github.io)，push 即发布）。当前状态：**M3+M4+M5 落地**——M1 工具链与骨架、M1.5 主题令牌（theme.css 唯一外观入口 + 暗色跟系统）、M2 转换层（引用式锚定 + 区间分段渲染 span[data-notes]）、M3 桌面边注引擎（碰撞分流回升 + click 召唤：桌面 pinned 浮层 / 窄屏居中模态双分支）、M4 聚焦模式（折叠条 + 聚光灯）与站点件（随笔样式 A / 暗色三态切换 / content collections / 首页归档）、M5 原文对照（posts 邻接式 :::orig + 段内插行 + 全局/段级双层开关）全通，vitest 49 绿入 CI；文章进 src/content/{notes,posts}/（[slug].astro 动态路由）；遗留 = 站点元信息待用户提供；notes 原文对照不排期（关键坑已记 plan.todo M5）；按 plan.todo 推进（plan.todo 为唯一规划/里程碑事实源，取代 ROADMAP）。
+Blog —— 个人博客（Astro 7 + GitHub Pages 用户站 [MNFConde.github.io](https://MNFConde.github.io)，push 即发布）。当前状态：**M3+M4+M5+M6 落地**——M1 工具链与骨架、M1.5 主题令牌（theme.css 唯一外观入口 + 暗色跟系统）、M2 转换层（引用式锚定 + 区间分段渲染 span[data-notes]）、M3 桌面边注引擎（碰撞分流回升 + click 召唤：桌面 pinned 浮层 / 窄屏居中模态双分支）、M4 聚焦模式（折叠条 + 聚光灯）与站点件（随笔样式 A / 暗色三态切换 / content collections / 首页归档）、M5 原文对照（posts 邻接式 :::orig + 段内插行 + 全局/段级双层开关）、M6 标题导航 TOC（render().headings + 自建 toc-engine：桌面左缘窄轨→fixed 面板 / 窄屏角标→居中模态，scroll-spy 含尾节全视口观察；随行抽 PostLayout，[slug].astro 回归纯路由）全通，vitest 49 绿入 CI；文章进 src/content/{notes,posts}/（[slug].astro 动态路由分发布局）；遗留 = 站点元信息待用户提供；notes 原文对照不排期（关键坑已记 plan.todo M5）；按 plan.todo 推进（plan.todo 为唯一规划/里程碑事实源，取代 ROADMAP）。
 
 > 本仓库的 cairn 规则**自包含于本文件**，不依赖外部 skill；`cairn/` 是项目知识层，条目类型固定「经验杂文」。
 

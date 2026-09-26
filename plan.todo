@@ -167,3 +167,27 @@ M5 原文对照（译文中文正文 + 邻接原文块；posts 专属，notes �
         ✔ 演示文落邻接原文（覆盖图片不成对直排场景）+ 浏览器实证 @high @done(26-09-19 17:05)（orig-demo：5 组对照含标题/列表对 + 图片不成对 + 无原文段；产物断言 5 块默认收起 + curl 可达；点击交互待用户浏览器复核）
         ✔ 文档收尾：AGENTS.md 写作审查约束 + cairn 决策/LOG 回写 + plan 勾选 @high @done(26-09-19 17:05)（另：strict 执行点迁移坑入 tech-stack/original-text）
     ✔ M5 全量落地（切片1）@done(26-09-19 17:05)（vitest 49 绿 + build 绿 + 产物/curl 实证；坑：file.fail 被 content layer 吞，strict 执行点迁至 content-gate.test.js）
+
+M6 标题导航 TOC（常显可折叠 + 移动端兼容）:
+    依据：26-09-26 讨论定案（本节既定约束即全量决策；形态范本 = VitePress「On this page」侧栏）
+    验收：任意滚动位置 TOC 可达且点亮当前节；折叠态不挡视线；窄屏（≤1100px）可用；样式全走 theme.css 令牌
+    既定约束（26-09-26 讨论定案）:
+        数据源 = render(entry).headings（Astro 原生返回，无需插件提取）；不用 tocbot——自带样式/交互模型与本项目令牌+状态机体系相性差
+        scroll-spy = 手写 IntersectionObserver（标题进入视口点亮对应 TOC 项），不监听 scroll 事件
+        形态 = 承 M3/M4「一个状态机、两个渲染分支」：桌面 >1100px 左侧窄轨——notes 左栏 M1 起留空正好归位，posts 单栏页同侧 fixed；窄屏 = 屏幕边缘角标 → 居中模态（复用 scrim，与 M4 聚焦模式同构）
+        常显与折叠兼容：默认收起为窄轨（窄轨本身即常显入口不挡视线），click 展开为全目录；交互一律 click（承 M3 定案，无 hover 展开）
+        层级避让 = 避开 notes-engine 绝对定位层与 pinned 浮层 z-30；锚点跳转配 scroll-margin-top；TOC 自身超高时内滚动
+        几何定案（26-09-26 结构审查）：TOC 面板一律 fixed 覆盖式、不改主栏几何——规避展开触发 notes-engine 重排（其只听 scroll/resize/fonts.ready）；TOC 自建状态机，与 notes-engine 零共享（只共享 scrim 模式与令牌，两者交互语义不同）
+        结构重构（26-09-26 审查定案，并入切片1）：抽 PostLayout.astro——posts 文章结构 + orig 接线自 [slug].astro 迁出，[slug] 回归纯路由；notes/posts 双布局成为 TOC 对称挂载点
+    切片1 数据 + 结构渲染:
+        ✔ PostLayout 抽取：posts 分支自 [slug].astro 迁出（结构审查定案；TOC 双布局挂载前置）@high @done(26-09-26 20:10)（posts 文章结构 + orig 三段接线迁入；orig-demo 实证 orig 全链路照旧）
+        ✔ headings 接线 + TOC 组件：notes/posts 动态路由取 render().headings，层级缩进渲染 @high @done(26-09-26 20:10)（src/components/TableOfContents.astro；渲染门槛 = 节标题≥2——单节无导航意义，about/orig-demo 正确不渲染）
+        ✔ 桌面左窄轨形态：默认窄轨 + click 展开（notes 左栏归位 / posts fixed 同侧）@critical @done(26-09-26 20:25)（竖排窄轨贴左缘垂直居中；面板 fixed 覆盖式自窄轨右侧弹出、垂直居中、超高内滚动；实证滚动任意位常显 + Escape 收起）
+        ✔ 窄屏模态形态：边缘角标 → 居中模态 + scrim（复用 M4 组件同构）@critical @done(26-09-26 20:25)（几何承 M4：z-60/50、百分比宽避滚动条；实证点条目即收起不滞留挡文）
+    切片2 scroll-spy + 收尾:
+        ✔ IntersectionObserver 点亮当前节 + 锚点跳转 scroll-margin-top @critical @done(26-09-26 20:25)（顶部 25% 条带观察；坑与修复：尾节跳转被页尾钳制进不了条带——尾节改全视口观察 + 点击即点亮目标，窄屏 390 实证钳制场景正确点亮；同批多命中按文档序取最靠后者）
+        ✔ 浏览器实证（宽窄两档断点）+ 单测（如有纯函数）+ cairn/plan 回写 @high @done(26-09-26 20:30)（1400/390 两档全交互：窄轨/面板/模态/跳转/点亮/Escape；无纯函数新增——引擎逻辑全 DOM 依赖，单测不适用；cairn/toc.md + LOG 回写）
+    ✔ M6 全量落地（切片1-2）@done(26-09-26 20:30)（vitest 49 绿 + build 绿 + 产物断言 notes-demo 5 条目/orig-demo+about 不出；结构重构随行：PostLayout 抽取后 [slug].astro 回归纯路由）
+    结构观察项（26-09-26 审查，暂不动，触发即办）:
+        ☐ BaseLayout 站点件挂载点收敛：第三个全局件出现时抽「站点件区」组件 @low
+        ☐ global.css 拆分：M6 落地后按 布局壳/边注系统/原文对照/站点件 拆文件（现 392 行逼近 500 限）@low

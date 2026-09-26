@@ -1,0 +1,52 @@
+---
+import BaseLayout from './BaseLayout.astro';
+import TableOfContents from '../components/TableOfContents.astro';
+
+const { frontmatter, headings } = Astro.props;
+const tocItems = (headings ?? []).filter((h) => h.depth >= 2); // h1 是文题（header 渲染），导航从节标题起
+const hasToc = tocItems.length >= 2; // 单节无导航意义
+---
+
+<BaseLayout title={frontmatter.title}>
+  <main class="note-layout">
+    <article class="note-main">
+      <header>
+        <h1>{frontmatter.title}</h1>
+        {frontmatter.original && (
+          <div class="orig-controls">
+            <button id="orig-toggle" type="button" class="orig-global" aria-pressed="false">
+              对照原文
+            </button>
+          </div>
+        )}
+      </header>
+      <slot />
+    </article>
+  </main>
+  {frontmatter.original && (
+    <script is:inline>
+      // 首帧前恢复读者原文偏好（承暗色防闪白套路）：localStorage orig=on/off 覆盖构建默认
+      try {
+        const pref = localStorage.getItem('orig');
+        if (pref === 'on' || pref === 'off') {
+          document.querySelectorAll('.orig-block').forEach((el) => {
+            el.classList.toggle('is-open', pref === 'on');
+          });
+        }
+      } catch {}
+    </script>
+  )}
+  {frontmatter.original && (
+    <script>
+      import { initOrigEngine } from '../scripts/orig-engine.js';
+      initOrigEngine();
+    </script>
+  )}
+  {hasToc && <TableOfContents items={tocItems} />}
+  {hasToc && (
+    <script>
+      import { initTocEngine } from '../scripts/toc-engine.js';
+      initTocEngine();
+    </script>
+  )}
+</BaseLayout>

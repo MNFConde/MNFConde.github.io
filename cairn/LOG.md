@@ -2,6 +2,10 @@
 
 > 时序日志，新条目置顶，每条 ≤20 行，只放摘要与指针；长结论沉淀进 cairn/ 主题笔记。
 
+## 2026-09-26
+
+- **M6 标题导航 TOC 全量落地**：render().headings 数据源 + 自建 toc-engine（状态单布尔、断点只改 CSS 形态：桌面左缘竖排窄轨 → fixed 面板 / 窄屏角标 → 居中模态 + scrim 复用 M4 几何）；面板 fixed 覆盖式不改主栏几何（规避 notes-engine 重排耦合）；scroll-spy IntersectionObserver + 尾节全视口观察修复页尾钳制坑；渲染门槛 = 节标题 ≥2。**结构重构随行**：抽 PostLayout.astro，[slug].astro 回归纯路由（审查结论：全仓 ≤500 行无忧、分层健康，观察项 = BaseLayout 站点件区 + global.css 拆分，均 @low 暂不动）。vitest 49 绿 + build 绿 + 宽窄两档浏览器实证（窄轨/面板/模态/跳转/点亮/Escape/尾节）。→ plan.todo M6 / toc.md
+
 ## 2026-09-19
 
 - **M5 原文对照落地（切片1 posts 全链路）**：邻接式 `:::orig`（纯文字块级配对）+ 段内插行（display:none 默认，负 margin 吃进段距）+ 双层开关（全局 localStorage 偏好同构暗色三态 + 段尾角标）；orig-demo 5 组对照实证，vitest 49 绿。**重大坑**：content layer 吞 file.fail——「strict 构建失败」自 M2 起即不成立，strict 执行点迁至 `src/content-gate.test.js`（M2 验收已在 plan 原位加更正注）。notes 不排期（用户定案）。→ plan.todo M5 / original-text.md / tech-stack.md

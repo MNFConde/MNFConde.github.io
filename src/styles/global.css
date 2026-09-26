@@ -390,3 +390,141 @@ blockquote {
   left: auto;
   right: calc(100% + var(--gutter));
 }
+
+/* —— M6 标题导航 TOC ——
+   tab 常显（桌面左缘竖排窄轨 / 窄屏圆形角标），click 展开；面板 fixed 覆盖式不改主栏几何
+   （规避触发 notes-engine 重排）；状态单点 .toc[data-open]，层级避让 pinned 浮层（z-30）——
+   TOC 面板 z-25 恒低于 pinned，tab z-25 高于正文流但被 pinned 盖住 */
+.toc-tab {
+  position: fixed;
+  z-index: 25;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  writing-mode: vertical-rl; /* 竖排窄轨 */
+  width: var(--toc-rail-w);
+  padding: 0.9rem 0;
+  border: 1px solid var(--line);
+  border-left: none;
+  border-radius: 0 var(--radius) var(--radius) 0;
+  background: var(--paper);
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: var(--font-size-toc);
+  letter-spacing: 0.35em;
+  cursor: pointer;
+}
+
+.toc-tab:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.toc-panel {
+  margin: 0;
+  padding: 0.75rem 0.5rem;
+  list-style: none;
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity 0.18s ease, visibility 0s linear 0.18s;
+}
+
+.toc[data-open='true'] .toc-panel {
+  visibility: visible;
+  opacity: 1;
+  transition: opacity 0.18s ease;
+}
+
+.toc-panel li {
+  padding-left: calc(var(--toc-lv) * 0.85rem);
+}
+
+.toc-panel a {
+  display: block;
+  padding: 0.24rem 0.4rem;
+  border-radius: calc(var(--radius) / 2);
+  line-height: 1.55;
+  color: var(--ink-soft);
+  text-decoration: none;
+}
+
+.toc-panel a:hover {
+  color: var(--ink);
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
+}
+
+.toc-panel a.is-here {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.toc-panel a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+/* 桌面（>1100px）：面板自 tab 右侧弹出，垂直居中、超高内滚动 */
+@media (min-width: 1101px) {
+  .toc-panel {
+    position: fixed;
+    z-index: 25;
+    left: calc(var(--toc-rail-w) + 0.55rem);
+    top: 50%;
+    transform: translateY(-50%);
+    width: var(--toc-panel-w);
+    max-height: calc(100vh - 4rem);
+    overflow: auto;
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-card);
+  }
+}
+
+.toc-scrim {
+  display: none; /* 桌面无遮罩 */
+}
+
+/* 锚点跳转：标题上方呼吸空隙（页面无固定 header，纯视觉缓冲） */
+.note-main :is(h2, h3, h4, h5, h6)[id] {
+  scroll-margin-top: var(--toc-scroll-mt);
+}
+
+/* 窄屏（≤1100px）：角标横排胶囊 + 面板居中模态 + scrim（几何承 M4：border-box + 百分比宽，
+   100vw 含滚动条、content-box 加 padding 会溢出视口）；z 与聚焦模态同层（60/50），scrim 天然互斥 */
+@media (max-width: 1100px) {
+  .toc-tab {
+    writing-mode: horizontal-tb;
+    width: auto;
+    padding: 0.5rem 0.9rem;
+    letter-spacing: normal;
+    border-left: 1px solid var(--line);
+    border-radius: 0 var(--radius) var(--radius) 0;
+    box-shadow: var(--shadow-card);
+  }
+
+  .toc-panel {
+    box-sizing: border-box;
+    position: fixed;
+    inset: 0;
+    margin: auto;
+    width: min(22rem, calc(100% - 2rem));
+    height: fit-content;
+    max-height: 72vh;
+    overflow: auto;
+    z-index: 60;
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-modal);
+    padding: 1rem 0.9rem;
+  }
+
+  .toc[data-open='true'] .toc-scrim {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    background: var(--scrim);
+  }
+}

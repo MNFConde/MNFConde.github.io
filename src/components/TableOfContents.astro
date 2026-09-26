@@ -1,0 +1,18 @@
+---
+const { items } = Astro.props;
+---
+
+<!-- M6 标题导航：状态单点 data-open（引擎写、CSS 读）；tab 常显为入口，面板形态由断点媒询分流 -->
+<nav id="toc" class="toc" data-open="false" aria-label="标题导航">
+  <button type="button" class="toc-tab" aria-expanded="false" aria-controls="toc-panel">目录</button>
+  <ol id="toc-panel" class="toc-panel">
+    {
+      items.map((h) => (
+        <li style={`--toc-lv: ${Math.max(0, h.depth - 2)}`}>
+          <a href={`#${h.slug}`}>{h.text}</a>
+        </li>
+      ))
+    }
+  </ol>
+  <div class="toc-scrim"></div>
+</nav>

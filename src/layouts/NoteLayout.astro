@@ -1,6 +1,10 @@
 ---
 import BaseLayout from './BaseLayout.astro';
-const { frontmatter } = Astro.props;
+import TableOfContents from '../components/TableOfContents.astro';
+
+const { frontmatter, headings } = Astro.props;
+const tocItems = (headings ?? []).filter((h) => h.depth >= 2); // h1 是文题（header 渲染），导航从节标题起
+const hasToc = tocItems.length >= 2; // 单节无导航意义
 ---
 
 <BaseLayout title={frontmatter.title}>
@@ -16,4 +20,11 @@ const { frontmatter } = Astro.props;
     import { initNotesEngine } from '../scripts/notes-engine.js';
     initNotesEngine();
   </script>
+  {hasToc && <TableOfContents items={tocItems} />}
+  {hasToc && (
+    <script>
+      import { initTocEngine } from '../scripts/toc-engine.js';
+      initTocEngine();
+    </script>
+  )}
 </BaseLayout>
