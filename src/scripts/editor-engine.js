@@ -1,10 +1,11 @@
 /**
  * M9 编辑器引擎（dev-only 页 /dev/editor 的客户端逻辑，Vanilla JS）。
  * 切片1：文档列表 / 打开 / 块编辑 / 保存（PUT 前服务端跑 gate 重放 + 构建同源渲染）。
- * 块互斥由块模型结构性保证（editor-blocks.js）；快捷键与划选建锚随切片2、
- * 实时预览随切片3、导入随切片4 接入。
+ * 切片2：Alt+数字键块格式互斥切换（同键回段落）+ 划选建边注（findQuote 即时
+ * 歧义校验——与构建同一份匹配代码）+ frontmatter 表单化编辑。
+ * 块互斥由块模型结构性保证（editor-blocks.js）；实时预览随切片3、导入随切片4。
  */
-import { parseDoc, serializeDoc } from '../lib/editor-blocks.js';
+import { countQuoteHits, inlineToText, nextNoteId, normalizeQuote, parseDoc, serializeDoc } from '../lib/editor-blocks.js';
 
 const BLOCK_LABELS = {
   p: '段落',
@@ -15,6 +16,9 @@ const BLOCK_LABELS = {
   code: '代码',
   image: '图片',
 };
+
+// Alt+数字 → 目标类型；互斥 = 直接改写块 type（单字段），同键再按回段落
+const SHORTCUT_TYPES = { 1: 'p', 2: 'h2', 3: 'h3', 4: 'essay', 5: 'code' };
 
 const state = {
   slug: null,
@@ -77,6 +81,7 @@ async function openDoc(slug) {
   state.dirty = false;
   state.focusIndex = -1;
   els.slug.value = slug;
+  renderFm();
   renderBlocks();
   loadDocs();
   status();
@@ -97,10 +102,76 @@ function newDoc() {
   };
   state.dirty = false;
   els.slug.value = '';
+  renderFm();
   renderBlocks();
+  focusBlock(0);
   loadDocs();
   status();
   hint('新文档：填 slug 后 Ctrl+S 保存到 src/content/notes/');
+}
+
+// —— frontmatter 表单（已知字段固定排 + 既有未知键原样保留）——
+
+const FM_FIELDS = [
+  { key: 'title', label: '标题' },
+  { key: 'description', label: '描述' },
+  { key: 'date', label: '日期' },
+  { key: 'tags', label: '标签（逗号分隔）', list: true },
+  { key: 'series', label: '系列' },
+  { key: 'seriesOrder', label: '系列序号' },
+];
+
+function fmEntry(key) {
+  return state.doc.frontmatter.find((e) => e.key === key);
+}
+
+function setFmValue(key, value) {
+  const entry = fmEntry(key);
+  if (entry) {
+    entry.value = value;
+    entry.raw = Array.isArray(value) ? `[${value.join(', ')}]` : String(value);
+  } else if (value !== '' && !(Array.isArray(value) && value.length === 0)) {
+    state.doc.frontmatter.push({
+      key,
+      value,
+      raw: Array.isArray(value) ? `[${value.join(', ')}]` : String(value),
+    });
+  }
+  state.dirty = true;
+  status();
+}
+
+function renderFm() {
+  els.fm.innerHTML = '';
+  if (!state.doc) return;
+  for (const field of FM_FIELDS) {
+    const entry = fmEntry(field.key);
+    const label = document.createElement('label');
+    label.className = 'ed-fm-field';
+    const caption = document.createElement('span');
+    caption.textContent = field.label;
+    const input = document.createElement('input');
+    input.dataset.fmKey = field.key;
+    input.dataset.fmList = field.list ? '1' : '';
+    input.value =
+      entry == null
+        ? ''
+        : field.list
+          ? (entry.value ?? []).join(', ')
+          : Array.isArray(entry.value)
+            ? entry.value.join(', ')
+            : String(entry.value ?? '');
+    input.addEventListener('input', () => {
+      setFmValue(
+        field.key,
+        field.list
+          ? input.value.split(',').map((s) => s.trim()).filter(Boolean)
+          : input.value
+      );
+    });
+    label.append(caption, input);
+    els.fm.appendChild(label);
+  }
 }
 
 // —— 块渲染 ——
@@ -214,10 +285,61 @@ function renderBlocks() {
   state.doc.blocks.forEach((b, i) => els.blocks.appendChild(renderBlock(b, i)));
 }
 
-// —— 结构操作（增删移；type 切换随切片2 快捷键接入，同走 renderBlocks）——
+// —— 结构操作（增删移/类型切换/划选建锚）——
 
 function insertIndex() {
   return state.focusIndex >= 0 ? state.focusIndex + 1 : state.doc.blocks.length;
+}
+
+/** 互斥切格式：目标即当前 → 回段落；否则改写 type 并搬运文本（note 取 body，
+ *  image 取 alt 作文本来源）。数据模型单 type 字段——切换即替换，无嵌套路径。 */
+function switchBlockType(i, target) {
+  const b = state.doc.blocks[i];
+  if (b.type === 'note' && target !== 'note' && !b.body.trim() && !confirm('边注转格式将丢弃引用串，继续？')) return;
+  const text = b.type === 'note' ? b.body : b.type === 'image' ? b.alt : b.text ?? '';
+  const next = b.type === target ? 'p' : target;
+  for (const key of ['id', 'quote', 'body', 'lang', 'src', 'alt', 'title']) delete b[key];
+  Object.assign(b, next === 'code' ? { type: 'code', lang: '', text } : { type: next, text });
+  state.dirty = true;
+  renderBlocks();
+  status();
+  focusBlock(i);
+}
+
+function focusBlock(i) {
+  const box = els.blocks.querySelector(`.eb[data-i="${i}"]`);
+  const ta = box?.querySelector('textarea, input');
+  ta?.focus();
+}
+
+/** 划选建边注：选区 → 规范化引用串（经行内语法剥离，与构建检索空间一致）→
+ *  countQuoteHits 即时校验（findQuote 与构建同一份代码）→ 唯一命中才落块。 */
+function createNoteFromSelection(ta) {
+  const raw = ta.value.slice(ta.selectionStart, ta.selectionEnd);
+  const quote = inlineToText(raw);
+  if (!quote) {
+    hint('选区为空或经语法剥离后无内容');
+    return;
+  }
+  const { count, blockIndex } = countQuoteHits(state.doc.blocks, quote);
+  if (count === 0) {
+    hint('引用串经语法剥离后未命中正文——选区可能跨了行内语法，请调整');
+    return;
+  }
+  if (count > 1) {
+    hint(`引用串命中 ${count} 处（歧义）——请扩大选区使其唯一`);
+    return;
+  }
+  const box = ta.closest('.eb');
+  const at = Number(box?.dataset.i ?? blockIndex);
+  const after = blockIndex >= 0 ? blockIndex : at; // 命中块优先（选区与命中块通常同段）
+  const id = nextNoteId(state.doc.blocks);
+  state.doc.blocks.splice(after + 1, 0, { type: 'note', id, quote, body: '' });
+  state.dirty = true;
+  renderBlocks();
+  status();
+  focusBlock(after + 1);
+  hint(`边注 #${id} 已建：「${quote}」`);
 }
 
 function addBlock(type) {
@@ -228,12 +350,13 @@ function addBlock(type) {
     essay: { type: 'essay', text: '' },
     code: { type: 'code', lang: '', text: '' },
     image: { type: 'image', src: '/', alt: '', title: '' },
-    note: { type: 'note', id: '', quote: '', body: '' },
+    note: { type: 'note', id: nextNoteId(state.doc.blocks), quote: '', body: '' },
   }[type];
   state.doc.blocks.splice(insertIndex(), 0, structuredClone(empty));
   state.dirty = true;
   renderBlocks();
   status();
+  focusBlock(insertIndex() - 1);
 }
 
 function removeBlock(i) {
@@ -277,7 +400,7 @@ async function save() {
 }
 
 export function initEditor() {
-  for (const id of ['docs', 'slug', 'status', 'hint', 'blocks', 'toolbar', 'new', 'save']) {
+  for (const id of ['docs', 'slug', 'status', 'hint', 'blocks', 'toolbar', 'new', 'save', 'fm']) {
     els[id] = $(`ed-${id}`);
   }
   els.new.addEventListener('click', newDoc);
@@ -294,6 +417,23 @@ export function initEditor() {
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
       e.preventDefault();
       save();
+      return;
+    }
+    if (e.isComposing || !e.altKey || e.ctrlKey || e.metaKey) return;
+    const ta = e.target.closest?.('#ed-blocks textarea');
+    if (!ta) return;
+    const box = ta.closest('.eb');
+    const i = Number(box.dataset.i);
+    if (e.key.toLowerCase() === 'n') {
+      e.preventDefault();
+      if (ta.selectionStart !== ta.selectionEnd) createNoteFromSelection(ta);
+      else hint('先在段落里划选一段文字，再按 Alt+N 建边注');
+      return;
+    }
+    const target = SHORTCUT_TYPES[e.key];
+    if (target) {
+      e.preventDefault();
+      switchBlockType(i, target);
     }
   });
   loadDocs().catch((error) => hint(`文档列表加载失败：${error.message}`));

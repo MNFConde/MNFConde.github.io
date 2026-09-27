@@ -28,6 +28,7 @@ import '../styles/global.css';
       <button type="button" data-add="note">+ 边注</button>
       <button type="button" data-add="code">+ 代码</button>
       <button type="button" data-add="image">+ 图片</button>
+      <span class="ed-cheatsheet">Alt+1..5 切块格式（同键回段落，互斥）· 段内划选 + Alt+N 建边注</span>
     </div>
   </main>
   <section id="ed-preview"><div id="ed-preview-mount"></div></section>
@@ -51,6 +52,9 @@ import '../styles/global.css';
   #ed-status { color: #b45309; flex: 1; }
   #ed-hint { white-space: pre-wrap; color: #b91c1c; font-size: 12px; margin: 0 0 8px; }
   #ed-hint:empty { display: none; }
+  #ed-fm { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 6px 12px; margin: 0 0 12px; }
+  .ed-fm-field { display: flex; flex-direction: column; gap: 2px; font-size: 12px; color: #666; }
+  .ed-fm-field input { border: 1px solid #ddd; border-radius: 4px; padding: 3px 6px; font: inherit; }
   #ed-blocks { display: flex; flex-direction: column; gap: 10px; }
   .eb { border: 1px solid #ddd; border-radius: 8px; padding: 6px 8px; background: #fafafa; }
   .eb-head { display: flex; gap: 6px; align-items: center; margin-bottom: 4px; font-size: 12px; color: #666; }
@@ -62,7 +66,8 @@ import '../styles/global.css';
   .eb textarea.eb-code { font-family: ui-monospace, Consolas, monospace; }
   .eb .eb-note-meta input { color: #555; }
   .eb button { font-size: 12px; padding: 2px 8px; }
-  #ed-toolbar { position: sticky; bottom: 0; display: flex; gap: 6px; padding: 8px 0; background: linear-gradient(transparent, #fff 40%); }
+  #ed-toolbar { position: sticky; bottom: 0; display: flex; gap: 6px; align-items: center; padding: 8px 0; background: linear-gradient(transparent, #fff 40%); }
+  .ed-cheatsheet { font-size: 12px; color: #888; margin-left: 8px; }
   #ed-preview { flex: 1.2; min-width: 320px; overflow-y: auto; padding: 16px; }
   #ed-preview-mount:empty::before { content: '预览（切片3 接线）'; color: #aaa; }
 </style>
