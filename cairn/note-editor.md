@@ -1,7 +1,7 @@
 ---
 type: 经验杂文
 status: active
-summary: M9 辅助注解编辑器：dev-only 双件架构、块模型互斥、共享管线渲染端点、findQuote 即时校验的设计定案与实证坑；M9.3 图片随件搬运与内容层相对引用炸站事故
+summary: M9 辅助注解编辑器：dev-only 双件架构、块模型互斥、共享管线渲染端点、findQuote 即时校验的设计定案与实证坑；M9.3 图片随件搬运与内容层相对引用炸站事故；M9.4 文档记忆与软换行渲染
 tags: [编辑器, dev-tools, astro, astro-content]
 contains: [decision, experience, lesson]
 created: 2026-09-27
@@ -30,6 +30,8 @@ notes 模式的源语法（`:note-m[词句]{#id}` 行内锚 / `:::note-m` 容器
 - **图片导入 = 随件搬运 + 绝对路径改写（M9.3）**：正文图片一律站点绝对路径 `/img/<slug>/...`，相对引用**由 gate 禁绝**。理由见教训节「相对图片引用炸全站」——不是排版偏好，是 content layer 的劫持机制使然。落位 `public/img/<slug>/`（避跨文档同名冲突）而非平铺；`/img/` 前缀同时保住 M8 的尺寸回填与 figure 化（`plugins/images.js` 只认 `/` 开头）。编辑器「导入文件夹」（`webkitdirectory`）→ `planAssetImport` 配对（相对路径精确优先、basename 唯一时回退：用户常只选图片文件夹本体）→ `POST /api/dev/assets` 落盘 → `rewriteRelativeImages` 改写。**配不上一律中止导入**：放过即重演事故；缺图清单回显 UI，不静默降级。
 - **图片搬运端点的安全姿态（M9.3）**：`normalizeAssetPath` 白名单（拒绝对路径/盘符/`..`/非图片扩展名）+ `resolve` 后二次确认落点仍在 `IMG_ROOT` 内——「白名单 + 落点复核」双保险，不依赖单层字符串检查。同名文件幂等三分支：同内容跳过（重复导入同目录不报错）、异内容拒覆盖报错——沿「绝不静默覆盖用户文件」。
 - **readBody 必须整体解码（M9.3）**：收集 Buffer 后 `Buffer.concat(...).toString('utf8')`，**禁止** `for await (chunk) data += chunk`。上限改按字节计。细节见教训节。
+- **软换行渲染换行但保留匹配空格（M9.4）**：自研 `remarkSoftBreak`（管线末位、remarkOrig 之后）把段内软换行拆为 `文本(尾空格)+break+文本`——`<br>` 前的空格 HTML 折叠视觉无差，却让 `flattenBlock`（空白→单空格、br 零字符）的边注检索空间与引用串保持互match。原生 hard break（remark 已剥行尾空白）同补空格，两种换行写法语义一致。**否决两条路**：remark-breaks 依赖（无空格拆分 = 跨折行引用永久失配）；改 flattenBlock 给 br 合成空格（segment 游标机制建立在每字符↔文本节点映射上，风险大 diff 大）。
+- **文档记忆只存 slug（M9.4）**：content 数据仓库重写即广播 `full-reload path:*`（Astro 源码 `vite-plugin-content-virtual-mod.js` 的 `invalidateDataStore`），保存落盘本身触发——`ed-last-slug` 三入口写入（打开/保存/导入）+ 启动时列表内存在才重开；滚动不存：内层容器滚动浏览器不代管，预览重渲染又有钳位瑕疵，回文档开头为定案取舍。
 
 ## 经验
 
@@ -43,9 +45,10 @@ notes 模式的源语法（`:note-m[词句]{#id}` 行内锚 / `:::note-m` 容器
 - **`for await (chunk of req) data += chunk` 会静默损坏多字节字符（M9.3）**：chunk 是 Buffer，`+=` 触发**逐片** `toString('utf8')`；分片边界落在多字节字符中间时，两半各自解码各得一个 `U+FFFD`，字符永久丢失且**无任何报错**——HTTP 分片边界由 TCP/内核决定，与业务代码无关，故表现为「同一文档时而正常时而掉字」。实测 73KB 中文文档往返 2 个 FFFD，原始 socket 强制在字符中间切分升到 5 个，落盘文件残留 2 个（源 0 个）。**修复 = 收集 Buffer 后 `Buffer.concat` 整体解码**（等价于 TextDecoder 的流式语义）。教训泛化：**任何按 chunk 累积文本的代码都要先问「边界能否切在多字节字符中间」**——Buffer→String 的隐式转换是重灾区。诊断手法：拿「源文件 vs 落盘文件」逐字节 diff 找 FFFD 位置，再看该字节偏移是否贴 64KiB 边界。
 
 - **「注释声称的 CSS」要实证**：M4 注释写「宽屏 CSS 隐藏 .note-preview」，实际规则从未存在——桌面边注正文前拼重复引用词存活九个里程碑才被 M9.1 双态实测抓出。可见性断言别只看 DOM 存在，要看 computed display + 双断点实测。
+- **零宽行内元素会被「空内容」判定静默丢弃（M9.4）**：segment 分段器的 `pushCoalesced` 原把 `children.length===0` 的元素判为空片段跳过——`<br>` 恰是空 children 的合法输出，带边注段落被切分时换行无声消失。修 = `isEmpty` 收窄为仅空文本（长度>0 的元素与基本段相交必贡献字符，空 children 元素只有零宽元素一类）。泛化：**「空」的判据要区分「无文本」与「无子节点」**，void 型元素（br/img/hr）在文本处理管线上是常态公民。
 - **Vite 对注入路由的样式模块缓存陈旧**：改 `.astro` 文件后 HTML 更新但 `<style>` 模块仍旧（watch 触发、不失效）——症状 = HTML 新 CSS 旧；解法 = 重启 dev server。排障抓手：curl 页面 grep 样式本体 + `getComputedStyle` 验证令牌落值。
 - **sticky 钉位上限被钳在父级 content box**：尾部滚动余量（`padding-bottom: 40vh`）挂在滚动容器 `#ed-main` 自身时，content box 底缘（即 sticky bottom 的钉位上限）被抬离面板可见底 40vh——工具栏滚到底悬停编辑区正中、贴不到底。余量须挂在钉底元素**之前**的兄弟（`#ed-blocks`），content box 底缘才会延展过其自然流位置。症状识别：sticky bottom 元素滚到底停在中途，与面板底恒差一个 padding 值。
-- **Astro dev 的 content 变更触发整页刷新**：编辑器未保存态在内存，PUT 落盘/其它内容文件变化都可能引发刷新丢编辑态——脏态 confirm 只防切换不防刷新；接受为 dev 工具特性（及时 Ctrl+S）。
+- **Astro dev 的 content 变更触发整页刷新**：编辑器未保存态在内存，PUT 落盘/其它内容文件变化都可能引发刷新丢编辑态——脏态 confirm 只防切换不防刷新；接受为 dev 工具特性（及时 Ctrl+S）。26-09-27 机制钉到源码级：content 数据仓库重写触发 `invalidateDataStore` 广播 `{type:'full-reload', path:'*'}`（Astro `vite-plugin-content-virtual-mod.js`），与当前页面是否读 collection 无关；M9.4 起 `ed-last-slug` 记忆刷新自动重开文档（滚动回开头，未保存改动仍丢）。
 - 视觉模型复核抓出两个 DOM 断言看不见的问题（静态乱码 + 边注裁剪）——自动化断言之外截图复核值得保留。
 
 ## 开放问题

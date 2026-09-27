@@ -371,3 +371,16 @@ M9.3 图片导入与内容层相对引用事故（26-09-27 用户报障触发）
         ✔ 同一份 lecture_notes_中文版.md + images/ 经新流程复导全链路 @critical @done(26-09-27 15:22)（6b42f99；14 图搬入 public/img/lecture-notes/images/；正文与源逐字相等（仅尾换行归一）；U+FFFD 0；/lecture-notes 200 且 14 图全 width/height + 14 figure；查看器点击可用；vitest 123 绿 + build 6 页绿 + dist 无 dev 路由）
     观察项（本次未纳入，触发即办）:
         ☐ figure 无 title 时不截图注（当前 0 figcaption 属预期：源文档未写 title） @low
+
+M9.4 编辑器体验补丁：文档记忆 + 软换行渲染（26-09-27 用户需求触发）:
+    依据：①保存后页面回到未选中状态——Astro dev 内容数据仓库重写即广播 full-reload（保存落盘本身触发），编辑器内存态清空（M9 已记坑的机制钉到源码级）；②源文件无空行连续行被 CommonMark 软换行折叠成一行（全库实证 13 处、全在 lecture-notes 题记「引文+署名」）
+    既定约束（26-09-27 用户定案）:
+        文档记忆只存 slug 不存滚动（内层容器滚动浏览器不代管，恢复成本高且预览重渲染有钳位瑕疵——取舍定案）；localStorage('ed-last-slug') 打开/保存/导入三入口写入，启动时列表内仍存在才自动重开（不存在静默跳过）
+        软换行渲染 = remark 层自研微插件（拒 remark-breaks 依赖：它拆分不留空格，边注引用跨折行将永久失配）；拆分在 break 前保留一个空格，flattenBlock 规范化文本（空白→单空格、br 零字符）匹配空间不变——否决改 flattenBlock 给 br 合成空格的路线（segment 游标机制建立在「每字符↔文本节点」映射上，风险大）
+        插件序 = mdRemarkPlugins 末位（remarkOrig 之后）：orig 纯文字校验会把 break 节点判富内容，先校验后拆分
+        原生 hard break（行尾≥2空格）同补空格：remark 解析已剥行尾空白产出 break 节点，不补则两种换行写法检索语义分裂
+    切片1:
+        ✔ localStorage slug 记忆 + 启动恢复 @high @done(26-09-27 16:35)（a318e8c；IAB 实证：打开 lecture-notes → 刷新自动恢复选中态 309 块「已保存」；列表无此 slug 静默跳过）
+        ✔ remarkSoftBreak 插件 + md-pipeline 注册（构建/重放/预览同源） @critical @done(26-09-27 16:40)（b6d0392；单测 6 例 + 集成 2 例：渲染 <br>、跨折行引用命中 data-notes）
+        ✔ segment 零宽元素保全：isEmpty 收窄仅空文本 + 根层/build 内层零宽分支 @critical @done(26-09-27 16:40)（b6d0392；否则带边注段落切分时 br 被游标吞掉换行丢失——pushCoalesced 把空 children 元素判空丢弃是暗坑；测试 1 例双场景）
+        ✔ 全链路验证：vitest 132 绿（123+9）+ IAB 编辑器预览/站点 /lecture-notes 各 13 处题记两行 + /notes-demo 边注结构回归完好 @critical @done(26-09-27 16:45)

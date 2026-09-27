@@ -4,6 +4,8 @@
 
 ## 2026-09-27
 
+- **M9.4 编辑器体验补丁：文档记忆 + 软换行渲染（用户需求触发）**：①保存后回未选中态——机制钉到 Astro 源码级：content 数据仓库重写即向浏览器广播 `full-reload path:*`（保存落盘本身触发），修 = `localStorage('ed-last-slug')` 三入口写入 + 启动恢复，滚动不存（既定取舍）。②无空行连续行按 CommonMark 软换行折叠成一行（全库 13 处全在 lecture-notes 题记）——自研 `remarkSoftBreak`：拆分在 break 前保留一个空格，`flattenBlock` 匹配空间不变（**remark-breaks 类无空格拆分会致跨折行边注引用永久失配**；改 flattenBlock 合成空格被否——segment 游标建立在「每字符↔文本节点」映射上）；插件序必须在 remarkOrig 后（orig 校验把 break 判富内容）；顺修 segment 暗坑：`pushCoalesced` 把空 children 元素判空丢弃——带边注段落切分时 br 被吞，isEmpty 收窄仅空文本。vitest 132 绿（123+9）+ IAB 双端实证（编辑器恢复、13 题记两行、notes-demo 回归）。→ plan.todo M9.4 / note-editor.md
+
 - **M9.3 图片导入与「相对引用炸全站」事故修复（用户报障触发）**：dev 全站 500 ImageNotFound，根因**两条独立缺陷叠加**——① Astro content layer 把 `images/x.png` 相对引用当条目静态资源 import，缺失即抛错且该模块被 content 虚拟模块链式导入，**所有读 collection 的路由同时 500**（dev/build 同源）；② `readBody` 逐片 `data += chunk` 触发隐式 toString，分片边界落在多字节字符中间即静默产出 U+FFFD（73KB 中文文档往返 2 个、强制切分 5 个、落盘残留 2 个）。修：`http-body.js` 整体解码 + 字节上限；`import-assets.js` 配对/改写纯函数 + `POST /api/dev/assets` 搬运端点（白名单 + 落点复核 + 同名幂等）+ 编辑页「导入文件夹」；`collectImageProblems` 接入 content-gate 与 PUT 校验（禁绝相对引用）。同一份 73KB 文档复导全链路验证：正文逐字相等、U+FFFD 0、14 图 width/height + 14 figure、查看器可用。vitest 123 绿（90+33）+ build 6 页绿 + dist 无 dev 路由。→ plan.todo M9.3 / note-editor.md
 
 - **M9.1 再追修：工具栏单行 flex 挤压双折行（用户复核触发）**：6 按钮 + 速查同挤一条 flex 行，子项默认可收缩被压到内容宽以下——按钮标签与速查齐折行。修：flex-wrap + 速查 flex-basis:100% 独占次行 + 双 nowrap，字号未动；IAB 796px 实测 6 钮同排单行、速查整行无截断（52666a2）。→ plan.todo M9.1
