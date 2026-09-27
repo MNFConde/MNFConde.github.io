@@ -11,18 +11,21 @@ import '../styles/global.css';
     <title>notes 编辑器（dev-only）</title>
   </head>
   <body>
-    <div id="editor-app" data-layout="side">
+    <div id="editor-app" data-layout="side" data-sidebar="open">
   <aside id="ed-sidebar">
-    <div class="ed-side-head">
-      <strong>notes 文档</strong>
-      <button type="button" id="ed-new" title="新建空白文档">新建</button>
-    </div>
-    <ul id="ed-docs"></ul>
-    <div class="ed-import">
-      <button type="button" id="ed-import-file">导入 .md 文件</button>
-      <input type="file" id="ed-file" accept=".md,.markdown,text/markdown" hidden />
-      <textarea id="ed-paste" placeholder="或粘贴 markdown 全文后点下方按钮…"></textarea>
-      <button type="button" id="ed-import-paste">粘贴导入</button>
+    <button type="button" id="ed-side-toggle" title="收起文档栏（Ctrl+B）">«</button>
+    <div id="ed-side-body">
+      <div class="ed-side-head">
+        <strong>notes 文档</strong>
+        <button type="button" id="ed-new" title="新建空白文档">新建</button>
+      </div>
+      <ul id="ed-docs"></ul>
+      <div class="ed-import">
+        <button type="button" id="ed-import-file">导入 .md 文件</button>
+        <input type="file" id="ed-file" accept=".md,.markdown,text/markdown" hidden />
+        <textarea id="ed-paste" placeholder="或粘贴 markdown 全文后点下方按钮…"></textarea>
+        <button type="button" id="ed-import-paste">粘贴导入</button>
+      </div>
     </div>
   </aside>
   <div id="ed-content">
@@ -61,7 +64,15 @@ import '../styles/global.css';
   #editor-app[data-layout='stack'] #ed-content,
   #editor-app[data-layout='stack-rev'] #ed-content { flex-direction: column; }
   #editor-app[data-layout='stack-rev'] #ed-preview { order: -1; }
-  #ed-sidebar { width: 220px; flex: none; border-right: 1px solid #ccc; overflow-y: auto; padding: 8px; }
+  /* 侧栏收展（M9.2）：收起 = 32px 窄轨仅留切换钮。#ed-side-body 钉死内容宽（min-width），
+     宽度动画期间内容被 overflow-x 裁切滑出而非折行重排；侧栏宽变化经 flex 推挤预览面板，
+     容器查询/ResizeObserver 自动跟形态（M9.1 已铺好，零额外代码） */
+  #ed-sidebar { width: 220px; flex: none; border-right: 1px solid #ccc; overflow-x: hidden; overflow-y: auto; padding: 8px; transition: width .2s ease; }
+  #editor-app[data-sidebar='collapsed'] #ed-sidebar { width: 32px; }
+  #ed-side-toggle { display: block; margin-left: auto; width: 22px; height: 22px; padding: 0; border: 1px solid #ddd; border-radius: 4px; background: #fafafa; color: #666; line-height: 1; cursor: pointer; }
+  #ed-side-toggle:hover { background: #eee; }
+  #ed-side-body { min-width: 220px; }
+  #editor-app[data-sidebar='collapsed'] #ed-side-body { visibility: hidden; }
   .ed-side-head { display: flex; justify-content: space-between; align-items: center; padding: 4px; }
   #ed-docs { list-style: none; margin: 0; padding: 0; }
   #ed-docs li { padding: 6px 8px; border-radius: 6px; cursor: pointer; }

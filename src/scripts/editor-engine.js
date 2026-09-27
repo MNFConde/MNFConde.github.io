@@ -41,6 +41,16 @@ function applyLayout(mode) {
   } catch {}
 }
 
+// 侧栏收展（M9.2）：open 220px / collapsed 32px 窄轨仅留切换钮；localStorage 记忆承 ed-layout 模式
+function applySidebar(open) {
+  document.getElementById('editor-app').dataset.sidebar = open ? 'open' : 'collapsed';
+  els.sideToggle.textContent = open ? '«' : '»';
+  els.sideToggle.title = open ? '收起文档栏（Ctrl+B）' : '展开文档栏（Ctrl+B）';
+  try {
+    localStorage.setItem('ed-sidebar', open ? 'open' : 'collapsed');
+  } catch {}
+}
+
 const state = {
   slug: null,
   doc: null,
@@ -537,6 +547,11 @@ export function initEditor() {
     const next = LAYOUTS[(LAYOUTS.findIndex(([m]) => m === current) + 1) % LAYOUTS.length];
     applyLayout(next[0]);
   });
+  els.sideToggle = $('ed-side-toggle');
+  applySidebar(localStorage.getItem('ed-sidebar') !== 'collapsed');
+  els.sideToggle.addEventListener('click', () => {
+    applySidebar(document.getElementById('editor-app').dataset.sidebar !== 'open');
+  });
   els.new.addEventListener('click', newDoc);
   els.save.addEventListener('click', save);
   els.importFile.addEventListener('click', () => els.file.click());
@@ -557,6 +572,11 @@ export function initEditor() {
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
       e.preventDefault();
       save();
+      return;
+    }
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b') {
+      e.preventDefault();
+      applySidebar(document.getElementById('editor-app').dataset.sidebar !== 'open');
       return;
     }
     if (e.isComposing || !e.altKey || e.ctrlKey || e.metaKey) return;
