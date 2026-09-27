@@ -316,7 +316,7 @@ M9 辅助注解编辑器（note 模式 UI 注解写作台；dev-only 不进产�
         ✔ 浏览器实证全闭环（列/开/改/存/导入/预览/快捷键互斥/歧义校验）+ vitest 全绿 + 生产 build 断言零新增端点 @critical @done(26-09-27 10:38)（curl：PUT 合法 200 落盘/引用失配 400 不落盘/保留 slug 400；IAB 1600×900：27 块解析、脏态 confirm、保存 未保存→已保存 + 落盘核对；vitest 90 绿 + build 5 页不变 + dist 无 dev 路由；实证两修：补 meta charset 修静态模板乱码、预览面板局部缩小三栏令牌修边注裁剪）
         ✔ 文档收尾：plan 勾选 + cairn 主题笔记（note-editor.md）+ LOG + AGENTS 状态行 @high @done(26-09-27 10:45)
     观察项（定案未纳入，触发即办）:
-        ☐ 图片本地上传端点（dev API 写图片文件进仓库并插路径） @low
+        ✔ 图片本地上传端点（dev API 写图片文件进仓库并插路径）→ M9.3 落地 @done(26-09-27 15:22)
         ☐ posts（:::orig 原文对照）编辑支持 @low
         ☐ 预览↔编辑锚点联动（点击预览边注定位编辑块） @low
     ✔ M9 全量落地（切片1-4）@done(26-09-27 10:45)（e847d5c 规划 + 9c4def6 + 036315b + 8601ceb + b92b0f4；坑两条入 note-editor.md：Vite 注入路由样式模块缓存陈旧须重启 dev、Astro dev content 变更触发整页刷新——编辑器未保存态在内存，刷新即失）
@@ -341,3 +341,33 @@ M9.2 侧栏收展（26-09-27 用户需求触发）:
     定案：收成 32px 窄轨（仅切换钮可见）而非完全隐藏——把手常驻随时点回；#ed-side-body 钉死内容宽（min-width:220px）+ 父级 overflow-x 裁切，宽度动画期间内容滑出而非折行重排；Ctrl+B 快捷键 + localStorage('ed-sidebar') 记忆（承 ed-layout 模式）；侧栏宽变化经 flex 推挤预览面板宽，M9.1 容器查询/ResizeObserver 自动跟形态零额外代码
     切片1:
         ✔ 窄轨收展 + 切换钮（«/» 随态换向）+ Ctrl+B + localStorage 记忆 @high @done(26-09-27 11:55)（IAB 实测：点击收起 237→49px 窄轨、body visibility hidden、预览面板 1363→1551 自动吃满且 note-layout 存活；Ctrl+B 双向；收起后刷新还原 collapsed 再展开复位；vitest 90 绿）
+
+M9.3 图片导入与内容层相对引用事故（26-09-27 用户报障触发）:
+    依据：dev 全站 500「Image not found」——编辑器导入带图 md 未搬图（M9 观察项遗留），
+        且 M9 readBody 分片解码缺陷把大中文文档静默写坏（诊断中新发现，两缺陷独立叠加）
+    事故链（实证）：
+        ① Astro content layer 把 `images/x.png` 相对引用记为 localImagePaths → 生成
+           `.astro/content-assets.mjs` 静态 import → 文件缺失 → vite-plugin-content-assets.js
+           抛 ImageNotFound；该模块被 content 虚拟模块链式导入，**任何读 collection 的
+           路由全 500**（dev 与 build 同源，create-vite.js 无条件注册）
+        ② readBody `for await (chunk) data += chunk` 逐片隐式 toString('utf8')：分片边界
+           落在多字节字符中间即各得 U+FFFD。实测 73KB 中文文档 POST /render 往返 2 个、
+           原始 socket 强制切分 5 个；落盘 lecture-notes.md 残留 2 个（源 0 个）
+    既定约束（26-09-27 执行定案）:
+        图片落位 = public/img/<slug>/（避跨文档同名冲突，沿用现存 public/img/）；正文一律
+            站点绝对路径 /img/... —— 断掉 content layer 劫持，且保住 M8 尺寸回填/figure 化
+        gate 严格度 = 禁一切相对引用（AST 取 image/imageReference 节点，非 / 开头非 URL
+            即报错）；保存校验与 content-gate 同源消费，双点拦截
+        readBody 上限改按字节计（原按 JS 字符数，中文实际可放行三倍字节量）
+    切片1 缺陷修复:
+        ✔ Step1 删除问题文档恢复 dev（/ /notes-demo /about /archive /orig-demo 全 200；content-assets.mjs 回退空 Map） @critical @done(26-09-27 15:10)
+        ✔ http-body.js（readTextBody/readJsonBody 收 Buffer 整体解码 + 字节上限）；editor-dev 接线 @critical @done(26-09-27 15:16)（活体验证：整块 73KB 零 FFFD、原始 socket 强制字符中间切分零 FFFD——修复前 2 与 5）
+        ✔ import-assets.js 纯函数（isRelativeImageRef / normalizeAssetPath / collectRelativeRefs / planAssetImport / rewriteRelativeImages；围栏代码块内外分流） @critical @done(26-09-27 15:16)
+        ✔ /api/dev/assets 搬运端点（slug 复白名单 + resolve 二次越界确认 + 同名同内容幂等/异内容拒覆盖） @critical @done(26-09-27 15:16)
+        ✔ 编辑页「导入文件夹」（webkitdirectory）+ 导入前配对校验（缺失即中止不落盘、附缺失清单） @critical @done(26-09-27 15:16)（IAB 合成 FileList 实证：probe.md 双图改写为 /img/probe-2/... 并落盘 public/img/probe-2/；缺图粘贴导入中止且零落盘）
+        ✔ collectImageProblems（md-pipeline 共享）接入 content-gate + PUT 前校验 @critical @done(26-09-27 15:16)（PUT 相对引用 400 拦截实证；存量 4 篇零返工——既有图皆 /img/ 绝对路径）
+        ✔ 测试：http-body（分片/逐字节/上限）5 例 + import-assets 18 例 + md-pipeline 图片门禁 6 例 @critical @done(26-09-27 15:16)（vitest 123 绿 = 90 + 33）
+    切片2 复导验证（用户第 3 点）:
+        ✔ 同一份 lecture_notes_中文版.md + images/ 经新流程复导全链路 @critical @done(26-09-27 15:22)（14 图搬入 public/img/lecture-notes/images/；正文与源逐字相等（仅尾换行归一）；U+FFFD 0；/lecture-notes 200 且 14 图全 width/height + 14 figure；查看器点击可用；vitest 123 绿 + build 6 页绿 + dist 无 dev 路由）
+    观察项（本次未纳入，触发即办）:
+        ☐ figure 无 title 时不截图注（当前 0 figcaption 属预期：源文档未写 title） @low

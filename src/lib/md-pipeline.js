@@ -7,11 +7,13 @@
 import remarkDirective from 'remark-directive';
 import { unified } from 'unified';
 import remarkParse from 'remark-parse';
+import { visit } from 'unist-util-visit';
 import { createMarkdownProcessor } from '@astrojs/markdown-remark';
 import { remarkNoteMode } from '../plugins/notes.js';
 import { remarkOrig } from '../plugins/orig.js';
 import { rehypeNoteSegment } from '../plugins/segment.js';
 import { rehypeImages } from '../plugins/images.js';
+import { isRelativeImageRef } from './import-assets.js';
 
 // 与构建完全同序（astro.config 消费同一数组）；strict：失配/歧义/重复 id 即 fail
 export const mdRemarkPlugins = [remarkDirective, remarkNoteMode, [remarkOrig, { strict: true }]];
@@ -46,6 +48,40 @@ export function collectRemarkProblems(content, filePath, frontmatter = {}) {
   } catch (error) {
     problems.push(String(error.message ?? error));
   }
+  return problems;
+}
+
+/**
+ * 相对图片引用检查（26-09-27 事故门禁）：Markdown 里 `images/x.png` 这类相对引用会被
+ * Astro content layer 当条目资源静态 import，文件缺失即 ImageNotFound 并**炸掉整个
+ * dev/build**（content-assets 虚拟模块被所有读 collection 的路由链式导入）。
+ * 因此站点约定：正文图片一律引用 public 下的绝对路径 `/img/...`（走 M8 排版/尺寸管
+ * 线）；相对引用一律拒绝。图片搬运由 M9 dev 端点 POST /api/dev/assets 负责。
+ */
+export function collectImageProblems(content, filePath) {
+  const problems = [];
+  let tree;
+  try {
+    tree = unified().use(remarkParse).parse(content);
+  } catch (error) {
+    return [`${filePath}: 无法解析 Markdown：${error.message}`];
+  }
+  visit(tree, (node) => {
+    let url;
+    if (node.type === 'image') url = node.url;
+    else if (node.type === 'imageReference') url = node.identifier;
+    if (typeof url !== 'string') return;
+    let decoded = url;
+    try {
+      decoded = decodeURI(url);
+    } catch {}
+    if (!isRelativeImageRef(decoded)) return;
+    problems.push(
+      `${filePath}: 图片「${decoded}」是相对引用——内容层会把它当条目静态资源 import，` +
+        `文件缺失即 ImageNotFound 并导致 dev/build 整体失败；` +
+        `请改用站点绝对路径（如 /img/…），或在编辑器里用「导入文件夹」随件搬运`,
+    );
+  });
   return problems;
 }
 

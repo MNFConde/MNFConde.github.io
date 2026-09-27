@@ -11,6 +11,7 @@
  * 块互斥由块模型结构性保证（editor-blocks.js）。
  */
 import { countQuoteHits, inlineToText, nextNoteId, normalizeQuote, parseDoc, serializeDoc } from '../lib/editor-blocks.js';
+import { collectRelativeRefs, planAssetImport, rewriteRelativeImages } from '../lib/import-assets.js';
 import { initNotesEngine } from './notes-engine.js';
 
 const BLOCK_LABELS = {
@@ -503,7 +504,7 @@ function ensureFm(doc, fallbackTitle) {
   }
 }
 
-async function importFromText(mdText, fallbackName) {
+async function importFromText(mdText, fallbackName, assetFiles) {
   if (state.dirty && !confirm('有未保存改动，放弃并导入？')) return;
   const doc = parseDoc(mdText);
   const { docs } = await api('/notes');
@@ -511,9 +512,45 @@ async function importFromText(mdText, fallbackName) {
   const base = slug;
   let n = 2;
   while (docs.some((d) => d.slug === slug)) slug = `${base}-${n++}`;
+
+  // 图片随件搬运（相对引用是炸站根因：content layer 会当条目资源 import 缺失文件）
+  const files = assetFiles ?? [];
+  const relative = collectRelativeRefs(mdText);
+  if (relative.length > 0 && files.length === 0) {
+    hint(
+      `导入中止：文档引用了 ${relative.length} 个相对图片，但没有随件文件——` +
+        `相对引用会让 dev/build 整体失败。请用「导入文件夹」或「导入 .md + 图片」，` +
+        `或先把图片放进 public/ 并把引用改成 /… 绝对路径。\n缺失：\n${relative.join('\n')}`,
+    );
+    return;
+  }
+
+  let normalizedMd = mdText;
+  if (relative.length > 0) {
+    const plan = planAssetImport(mdText, files.map((f) => f.path), slug);
+    if (plan.missing.length > 0) {
+      hint(
+        `导入中止：以下图片没有随件提供，无法改写引用（相对引用会炸站）。\n缺失：\n${plan.missing.join('\n')}`,
+      );
+      return;
+    }
+    // 只上传被引用到的文件；rewrites 键 = md 里写的原始引用，值 = 站点 URL
+    const byPath = new Map(files.map((f) => [f.path, f]));
+    const payload = [];
+    const rewrites = new Map();
+    for (const [ref, match] of plan.matches) {
+      const file = byPath.get(match.path);
+      payload.push({ path: match.path, base64: file.base64 });
+      rewrites.set(ref, match.url);
+    }
+    if (payload.length > 0) await api('/assets', { method: 'POST', body: JSON.stringify({ slug, files: payload }) });
+    normalizedMd = rewriteRelativeImages(mdText, rewrites);
+  }
+
+  const finalDoc = parseDoc(normalizedMd);
   state.slug = slug;
-  state.doc = doc;
-  ensureFm(doc, slug);
+  state.doc = finalDoc;
+  ensureFm(finalDoc, slug);
   state.dirty = true;
   els.slug.value = slug;
   renderFm();
@@ -521,14 +558,37 @@ async function importFromText(mdText, fallbackName) {
   renderPreview();
   status();
   try {
-    await api(`/notes/${slug}`, { method: 'PUT', body: JSON.stringify({ md: serializeDoc(doc) }) });
+    await api(`/notes/${slug}`, { method: 'PUT', body: JSON.stringify({ md: serializeDoc(finalDoc) }) });
     state.dirty = false;
     status();
-    hint(`已导入并保存：src/content/notes/${slug}.md`);
+    hint(`已导入并保存：src/content/notes/${slug}.md${relative.length ? `（含 ${relative.length} 张图片 → /img/${slug}/）` : ''}`);
     loadDocs();
   } catch (error) {
     hint(`已载入（未落盘，问题如下，修完 Ctrl+S 再存）：\n${(error.problems ?? [error.message]).join('\n')}`);
   }
+}
+
+/** 选中的文件集合 → { mdText, mdName, assets }；assets 路径相对 md 所在目录 */
+function splitFileSelection(fileList) {
+  const files = [...(fileList ?? [])];
+  const mdFile = files.find((f) => /\.(md|markdown)$/i.test(f.name));
+  if (!mdFile) return null;
+  const mdDir = (mdFile.webkitRelativePath || mdFile.name).replace(/[^/\\]*$/, '');
+  const strip = (p) => (mdDir && p.startsWith(mdDir) ? p.slice(mdDir.length) : p);
+  const assets = files
+    .filter((f) => f !== mdFile)
+    .map((f) => ({ file: f, path: strip(f.webkitRelativePath || f.name).replace(/\\/g, '/') }))
+    .filter((a) => a.path);
+  return { mdFile, mdName: mdFile.name, assets };
+}
+
+async function readAssetBase64(asset) {
+  const buf = new Uint8Array(await asset.file.arrayBuffer());
+  let bin = '';
+  for (let i = 0; i < buf.length; i += 0x8000) {
+    bin += String.fromCharCode(...buf.subarray(i, i + 0x8000));
+  }
+  return { path: asset.path, base64: btoa(bin) };
 }
 
 export function initEditor() {
@@ -537,7 +597,9 @@ export function initEditor() {
   }
   els.importFile = $('ed-import-file');
   els.importPaste = $('ed-import-paste');
+  els.importDir = $('ed-import-dir');
   els.file = $('ed-file');
+  els.dir = $('ed-dir');
   els.paste = $('ed-paste');
   els.layout = $('ed-layout');
   const savedLayout = localStorage.getItem('ed-layout');
@@ -555,10 +617,22 @@ export function initEditor() {
   els.new.addEventListener('click', newDoc);
   els.save.addEventListener('click', save);
   els.importFile.addEventListener('click', () => els.file.click());
+  els.importDir.addEventListener('click', () => els.dir.click());
+  els.dir.addEventListener('change', async () => {
+    const selection = splitFileSelection(els.dir.files);
+    els.dir.value = '';
+    if (!selection) {
+      hint('所选文件夹里没有 .md 文件');
+      return;
+    }
+    const assets = [];
+    for (const asset of selection.assets) assets.push(await readAssetBase64(asset));
+    await importFromText(await selection.mdFile.text(), selection.mdName, assets);
+  });
   els.file.addEventListener('change', async () => {
     const file = els.file.files?.[0];
-    if (file) importFromText(await file.text(), file.name);
     els.file.value = '';
+    if (file) await importFromText(await file.text(), file.name);
   });
   els.importPaste.addEventListener('click', () => {
     if (els.paste.value.trim()) importFromText(els.paste.value, 'imported');

@@ -4,6 +4,8 @@
 
 ## 2026-09-27
 
+- **M9.3 图片导入与「相对引用炸全站」事故修复（用户报障触发）**：dev 全站 500 ImageNotFound，根因**两条独立缺陷叠加**——① Astro content layer 把 `images/x.png` 相对引用当条目静态资源 import，缺失即抛错且该模块被 content 虚拟模块链式导入，**所有读 collection 的路由同时 500**（dev/build 同源）；② `readBody` 逐片 `data += chunk` 触发隐式 toString，分片边界落在多字节字符中间即静默产出 U+FFFD（73KB 中文文档往返 2 个、强制切分 5 个、落盘残留 2 个）。修：`http-body.js` 整体解码 + 字节上限；`import-assets.js` 配对/改写纯函数 + `POST /api/dev/assets` 搬运端点（白名单 + 落点复核 + 同名幂等）+ 编辑页「导入文件夹」；`collectImageProblems` 接入 content-gate 与 PUT 校验（禁绝相对引用）。同一份 73KB 文档复导全链路验证：正文逐字相等、U+FFFD 0、14 图 width/height + 14 figure、查看器可用。vitest 123 绿（90+33）+ build 6 页绿 + dist 无 dev 路由。→ plan.todo M9.3 / note-editor.md
+
 - **M9.1 再追修：工具栏单行 flex 挤压双折行（用户复核触发）**：6 按钮 + 速查同挤一条 flex 行，子项默认可收缩被压到内容宽以下——按钮标签与速查齐折行。修：flex-wrap + 速查 flex-basis:100% 独占次行 + 双 nowrap，字号未动；IAB 796px 实测 6 钮同排单行、速查整行无截断（52666a2）。→ plan.todo M9.1
 - **M9.2 侧栏收展（用户需求触发）**：文档侧栏收成 32px 窄轨（仅切换钮 «/»）而非全隐——把手常驻随时点回；#ed-side-body 钉死 min-width + 父级 overflow-x 裁切，动画期内容滑出不折行；Ctrl+B + localStorage('ed-sidebar') 记忆；侧栏宽变化经 flex 推挤预览面板，容器查询自动跟形态（M9.1 免费收益）。IAB 实测收起 237→49px / 刷新还原 / Ctrl+B 双向 / 预览 1363→1551 自动吃满且 note-layout 存活；vitest 90 绿。→ plan.todo M9.2 / note-editor.md
 

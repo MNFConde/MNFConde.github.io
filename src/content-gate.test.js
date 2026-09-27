@@ -2,7 +2,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import matter from 'gray-matter';
-import { collectRemarkProblems } from './lib/md-pipeline.js';
+import { collectImageProblems, collectRemarkProblems } from './lib/md-pipeline.js';
 
 /**
  * 内容门槛（strict 的真正执行点）。
@@ -26,12 +26,24 @@ const files = [
 
 function checkFile(path) {
   const { content, data } = matter(readFileSync(path, 'utf8'));
-  return collectRemarkProblems(content, path, data);
+  return [...collectImageProblems(content, path), ...collectRemarkProblems(content, path, data)];
 }
 
 describe('内容门槛：:::orig 配对 strict（构建前 CI 把关）', () => {
   it('全部内容文件零失配、零提醒', () => {
     const problems = files.flatMap((path) => checkFile(path));
+    expect(problems).toEqual([]);
+  });
+});
+
+// 图片引用（26-09-27 事故）：相对引用被 content layer 当条目资源静态 import，
+// 文件缺失即 ImageNotFound 并炸掉整个 dev/build。正文图片一律走 public 绝对路径。
+describe('内容门槛：图片引用必须为站点绝对路径（M8/M9）', () => {
+  it('全部内容文件零相对图片引用', () => {
+    const problems = files.flatMap((path) => {
+      const { content } = matter(readFileSync(path, 'utf8'));
+      return collectImageProblems(content, path);
+    });
     expect(problems).toEqual([]);
   });
 });
