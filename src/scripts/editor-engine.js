@@ -26,6 +26,21 @@ const BLOCK_LABELS = {
 // Alt+数字 → 目标类型；互斥 = 直接改写块 type（单字段），同键再按回段落
 const SHORTCUT_TYPES = { 1: 'p', 2: 'h2', 3: 'h3', 4: 'essay', 5: 'code' };
 
+// 编辑/预览相对布局三态（M9.1）：面板宽度随之改变 → 预览容器查询自动换形态
+const LAYOUTS = [
+  ['side', '布局：并排'],
+  ['stack', '布局：上下'],
+  ['stack-rev', '布局：上下·预览上'],
+];
+
+function applyLayout(mode) {
+  document.getElementById('editor-app').dataset.layout = mode;
+  els.layout.textContent = LAYOUTS.find(([m]) => m === mode)?.[1] ?? LAYOUTS[0][1];
+  try {
+    localStorage.setItem('ed-layout', mode);
+  } catch {}
+}
+
 const state = {
   slug: null,
   doc: null,
@@ -98,7 +113,11 @@ async function renderPreview() {
     article.appendChild(body);
     layout.appendChild(article);
     els.preview.appendChild(layout);
-    state.disposePreview = initNotesEngine(); // 真引擎：碰撞布局/分流回升照常生效
+    // 容器模式（M9.1）：分支判据 = 预览面板宽度而非浏览器视口，滚动参照 = 面板
+    state.disposePreview = initNotesEngine({
+      container: layout,
+      scrollEl: document.getElementById('ed-preview'),
+    });
   } catch (error) {
     if (seq !== previewSeq) return;
     hint((error.problems ?? [error.message]).join('\n'));
@@ -510,6 +529,14 @@ export function initEditor() {
   els.importPaste = $('ed-import-paste');
   els.file = $('ed-file');
   els.paste = $('ed-paste');
+  els.layout = $('ed-layout');
+  const savedLayout = localStorage.getItem('ed-layout');
+  applyLayout(LAYOUTS.some(([m]) => m === savedLayout) ? savedLayout : LAYOUTS[0][0]);
+  els.layout.addEventListener('click', () => {
+    const current = document.getElementById('editor-app').dataset.layout;
+    const next = LAYOUTS[(LAYOUTS.findIndex(([m]) => m === current) + 1) % LAYOUTS.length];
+    applyLayout(next[0]);
+  });
   els.new.addEventListener('click', newDoc);
   els.save.addEventListener('click', save);
   els.importFile.addEventListener('click', () => els.file.click());

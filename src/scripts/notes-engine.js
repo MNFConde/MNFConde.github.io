@@ -10,19 +10,33 @@
  *    同一状态机，只换渲染分支。
  *
  * 断点 1101px 与 global.css 的 1100px 降级断点配对，改动须两处同步。
+ *
+ * M9.1 容器模式：initNotesEngine({ container, scrollEl }) —— 分支判据与滚动坐标系
+ * 从「浏览器视口」换成「容器」（预览面板）。默认无参调用仍是视口 matchMedia，生产行为零变化；
+ * 容器模式下 ResizeObserver 触发激活，scrollY/docY 以 scrollEl 为参照（面板内滚动）。
  */
 import { layoutNotes } from './notes-layout.js';
 
 const MQ_DESKTOP = '(min-width: 1101px)';
+const BREAK_CONTAINER = 1100; // 容器模式断点：与容器查询 (max-width: 1100px) 配对
 const VP_PAD = 24;          // 视口上沿缓冲（px）
 const DRIFT_THRESHOLD = 96; // drift 超过此值才参与视口回升（px）
 
-export function initNotesEngine() {
-  const layoutEl = document.querySelector('.note-layout');
+export function initNotesEngine({ container, scrollEl } = {}) {
+  const containerMode = !!container;
+  const layoutEl = container ?? document.querySelector('.note-layout');
   const mainEl = layoutEl?.querySelector('.note-main');
   if (!layoutEl || !mainEl) return;
+  if (containerMode && !scrollEl) return;
   const asides = [...layoutEl.querySelectorAll('.margin-note[data-anchor]')];
   if (asides.length === 0) return;
+
+  // 滚动坐标系：视口模式 = window.scrollY；容器模式 = 面板 scrollTop（几何参照也随之换源）
+  const scrollY = () => (containerMode ? scrollEl.scrollTop : window.scrollY);
+  const docY = (rect) =>
+    containerMode
+      ? rect.top - scrollEl.getBoundingClientRect().top + scrollEl.scrollTop
+      : rect.top + window.scrollY;
 
   const model = asides.map((el) => ({
     el,
@@ -53,10 +67,10 @@ export function initNotesEngine() {
     mainEl.querySelector(`.note-anchor[id="${id}"], [data-notes~="${id}"]`);
 
   function measure() {
-    base.top = mainEl.getBoundingClientRect().top + window.scrollY;
+    base.top = docY(mainEl.getBoundingClientRect());
     for (const m of model) {
       const a = findAnchor(m.id);
-      m.anchorTop = a ? a.getBoundingClientRect().top + window.scrollY - base.top : 0;
+      m.anchorTop = a ? docY(a.getBoundingClientRect()) - base.top : 0;
     }
     for (const m of model) m.height = m.el.getBoundingClientRect().height;
   }
@@ -76,7 +90,7 @@ export function initNotesEngine() {
       model.map((m) => ({ anchorTop: m.anchorTop, height: m.height })),
       {
         gap,
-        viewportTop: withViewport ? window.scrollY - base.top - VP_PAD : null,
+        viewportTop: withViewport ? scrollY() - base.top - VP_PAD : null,
         driftThreshold: DRIFT_THRESHOLD,
       }
     );
@@ -87,7 +101,7 @@ export function initNotesEngine() {
   // 与常驻布局「不追踪视口」定案不冲突——显式召唤 ≠ 常驻几何）
   function updatePinned() {
     if (!active || pinnedIds.size === 0) return;
-    const vpTop = window.scrollY - base.top + VP_PAD;
+    const vpTop = scrollY() - base.top + VP_PAD;
     for (const m of model) {
       if (pinnedIds.has(m.id)) {
         m.el.style.top = `${Math.round(Math.max(m.anchorTop, vpTop))}px`;
@@ -117,7 +131,17 @@ export function initNotesEngine() {
 
   const mq = window.matchMedia(MQ_DESKTOP);
   const onMq = () => (mq.matches ? activate() : deactivate());
-  mq.addEventListener('change', onMq);  const rafWrap = (fn) => {
+  let ro = null;
+  if (containerMode) {
+    // 容器模式：面板宽度驱动分支（ResizeObserver；初始 observe 回调即首跑，sync 兜底）
+    const sync = () => (container.clientWidth > BREAK_CONTAINER ? activate() : deactivate());
+    ro = new ResizeObserver(sync);
+    ro.observe(container);
+    sync();
+  } else {
+    mq.addEventListener('change', onMq);
+    onMq();
+  }  const rafWrap = (fn) => {
     let frame = 0;
     return () => {
       if (frame) return;
@@ -145,7 +169,8 @@ export function initNotesEngine() {
     updatePinned();
   });
 
-  window.addEventListener('scroll', onScroll, { passive: true });
+  const scrollTarget = containerMode ? scrollEl : window;
+  scrollTarget.addEventListener('scroll', onScroll, { passive: true });
   window.addEventListener('resize', onResize);
   window.addEventListener('load', remeasure);
   document.fonts?.ready.then(remeasure);  // —— 高亮管理（映射/管理基建，桌面 pinned 与窄屏模态两分支共用）——
@@ -320,8 +345,9 @@ export function initNotesEngine() {
   // 卸载钩子（M9 预览复用）：摘除 document/window 级监听——layoutEl 内监听随元素
   // 移除自然消亡；dispose 后 active=false 使 fonts.ready 迟到回调安全 no-op
   const dispose = () => {
-    mq.removeEventListener('change', onMq);
-    window.removeEventListener('scroll', onScroll);
+    if (ro) ro.disconnect();
+    else mq.removeEventListener('change', onMq);
+    scrollTarget.removeEventListener('scroll', onScroll);
     window.removeEventListener('resize', onResize);
     window.removeEventListener('load', remeasure);
     document.removeEventListener('click', onDocClick);
