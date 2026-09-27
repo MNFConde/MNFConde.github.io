@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { mapScroll } from './scroll-sync.js';
+import { invertAnchors, mapScroll } from './scroll-sync.js';
 
 describe('mapScroll：锚点插值滚动映射（M9.5）', () => {
   it('无锚点 → 纯比例映射（锚点表不可用时的退化形态）', () => {
@@ -63,5 +63,35 @@ describe('mapScroll：锚点插值滚动映射（M9.5）', () => {
     ];
     expect(mapScroll(300, 500, 1000, anchors)).toBe(600);
     expect(mapScroll(150, 500, 1000, anchors)).toBe(300); // 只剩 (0,0)→(300,600) 半程
+  });
+});
+
+describe('invertAnchors：反向联动轴交换', () => {
+  it('交换 src/dst（预览→编辑方向以预览侧为输入轴）', () => {
+    expect(
+      invertAnchors([
+        { src: 100, dst: 200 },
+        { src: 300, dst: 600 },
+      ]),
+    ).toEqual([
+      { src: 200, dst: 100 },
+      { src: 600, dst: 300 },
+    ]);
+  });
+
+  it('与 mapScroll 组合成逆映射：预览位置经反转锚点落回对应编辑位置', () => {
+    const anchors = [
+      { src: 100, dst: 200 },
+      { src: 300, dst: 600 },
+    ];
+    // 正向：编辑 100→预览 200；反向：预览 200（预览侧滚动上限 1000）→编辑 100（编辑侧上限 500）
+    expect(mapScroll(100, 500, 1000, anchors)).toBe(200);
+    expect(mapScroll(200, 1000, 500, invertAnchors(anchors))).toBe(100);
+    expect(mapScroll(600, 1000, 500, invertAnchors(anchors))).toBe(300);
+  });
+
+  it('空表/缺字段锚点安全透传（mapScroll 侧会跳过非法锚点）', () => {
+    expect(invertAnchors([])).toEqual([]);
+    expect(invertAnchors([{ src: 1 }])).toEqual([{ src: undefined, dst: 1 }]);
   });
 });

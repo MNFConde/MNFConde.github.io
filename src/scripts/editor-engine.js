@@ -12,7 +12,7 @@
  */
 import { countQuoteHits, inlineToText, nextNoteId, noteRails, normalizeQuote, parseDoc, serializeDoc } from '../lib/editor-blocks.js';
 import { collectRelativeRefs, planAssetImport, rewriteRelativeImages } from '../lib/import-assets.js';
-import { mapScroll } from '../lib/scroll-sync.js';
+import { invertAnchors, mapScroll } from '../lib/scroll-sync.js';
 import { initNotesEngine } from './notes-engine.js';
 
 const BLOCK_LABELS = {
@@ -125,7 +125,12 @@ function rebuildSyncAnchors() {
   if (!bodyDiv || els.blocks.children.length !== state.doc.blocks.length) return;
   const kids = [...bodyDiv.children];
   const anchors = [];
+  const LIST_LINE = /^\s*(?:[-*+]|\d+[.)])\s+/;
+  const isListBlock = (b) =>
+    typeof b.text === 'string' && LIST_LINE.test(b.text.split('\n').find((l) => l.trim()) ?? '');
   let k = 0;
+  let listKid = null; // 正在逐项吃的列表 kid（松散列表：N 块 ↔ 1 个 ul 的 N 个 li）
+  let liIdx = 0;
   for (let i = 0; i < state.doc.blocks.length; i++) {
     const b = state.doc.blocks[i];
     const box = els.blocks.children[i];
@@ -133,10 +138,26 @@ function rebuildSyncAnchors() {
       if (kids[k]?.tagName === 'ASIDE') k++;
       const anchorEl = layout.querySelector(`.note-anchor[id="${b.id}"], [data-notes~="${b.id}"]`);
       if (anchorEl) anchors.push({ src: topIn(box, els.mainScroll), dst: topIn(anchorEl, els.previewScroll) });
-    } else {
-      const el = kids[k++];
-      if (el) anchors.push({ src: topIn(box, els.mainScroll), dst: topIn(el, els.previewScroll) });
+      continue;
     }
+    // 列表块串结束 → 消费掉整个列表 kid 再走常规路径
+    if (listKid && !isListBlock(b)) {
+      k++;
+      listKid = null;
+      liIdx = 0;
+    }
+    if (isListBlock(b) && /^(UL|OL)$/.test(kids[k]?.tagName ?? '')) {
+      if (listKid !== kids[k]) {
+        listKid = kids[k];
+        liIdx = 0;
+      } else liIdx++;
+      // 块内多行列表（紧凑写法）只锚首项：li 游标不回退，多出的 li 无对应块也无妨
+      const li = listKid.children[liIdx] ?? listKid;
+      anchors.push({ src: topIn(box, els.mainScroll), dst: topIn(li, els.previewScroll) });
+      continue; // 不前进 k：后续列表块继续吃同一 ul 的下一个 li
+    }
+    const el = kids[k++];
+    if (el) anchors.push({ src: topIn(box, els.mainScroll), dst: topIn(el, els.previewScroll) });
   }
   syncAnchors = anchors;
 }
@@ -148,7 +169,9 @@ function bindScrollSync() {
     const srcMax = source.scrollHeight - source.clientHeight;
     const dstMax = target.scrollHeight - target.clientHeight;
     if (srcMax <= 0 || dstMax <= 0) return;
-    const dst = mapScroll(source.scrollTop, srcMax, dstMax, syncAnchors ?? []);
+    // 锚点 src 固定为编辑侧坐标：预览作源时交换轴，两方向共用同一份测量
+    const anchors = source === els.previewScroll ? invertAnchors(syncAnchors) : syncAnchors;
+    const dst = mapScroll(source.scrollTop, srcMax, dstMax, anchors ?? []);
     if (Math.abs(target.scrollTop - dst) >= 1) {
       syncLockEl = target;
       syncLockUntil = performance.now() + 120;
