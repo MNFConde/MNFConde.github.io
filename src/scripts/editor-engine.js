@@ -12,6 +12,7 @@
  */
 import { countQuoteHits, inlineToText, nextNoteId, normalizeQuote, parseDoc, serializeDoc } from '../lib/editor-blocks.js';
 import { collectRelativeRefs, planAssetImport, rewriteRelativeImages } from '../lib/import-assets.js';
+import { mapScroll } from '../lib/scroll-sync.js';
 import { initNotesEngine } from './notes-engine.js';
 
 const BLOCK_LABELS = {
@@ -94,6 +95,74 @@ function autoResize(ta) {
   ta.style.height = `${ta.scrollHeight}px`;
 }
 
+// —— 滚动联动（M9.5）：编辑/预览双向锚点插值同步 ——
+// 锚点表 = 块序两侧位置对：编辑侧 .eb 逐块，预览侧逐个消费渲染顶层元素
+// （note 块跳过 aside——其视觉位置是碰撞分流的产物，改取正文锚元素，与
+// notes-engine 召唤同源选择器）。预览重建/面板尺寸变化后重建；失配退化比例映射。
+
+let syncAnchors = null;
+let syncLockEl = null; // 回声锁：程序滚动的容器在窗口期内忽略自己的 scroll 事件
+let syncLockUntil = 0;
+let syncOn = true;
+
+function applySync(on) {
+  syncOn = on;
+  els.sync.textContent = on ? '联动：开' : '联动：关';
+  try {
+    localStorage.setItem('ed-sync', on ? 'on' : 'off');
+  } catch {}
+}
+
+function topIn(el, scrollEl) {
+  return el.getBoundingClientRect().top - scrollEl.getBoundingClientRect().top + scrollEl.scrollTop;
+}
+
+function rebuildSyncAnchors() {
+  syncAnchors = null;
+  if (!state.doc) return;
+  const layout = els.preview.querySelector('.note-layout');
+  const bodyDiv = layout?.querySelector('.note-main > div');
+  if (!bodyDiv || els.blocks.children.length !== state.doc.blocks.length) return;
+  const kids = [...bodyDiv.children];
+  const anchors = [];
+  let k = 0;
+  for (let i = 0; i < state.doc.blocks.length; i++) {
+    const b = state.doc.blocks[i];
+    const box = els.blocks.children[i];
+    if (b.type === 'note') {
+      if (kids[k]?.tagName === 'ASIDE') k++;
+      const anchorEl = layout.querySelector(`.note-anchor[id="${b.id}"], [data-notes~="${b.id}"]`);
+      if (anchorEl) anchors.push({ src: topIn(box, els.mainScroll), dst: topIn(anchorEl, els.previewScroll) });
+    } else {
+      const el = kids[k++];
+      if (el) anchors.push({ src: topIn(box, els.mainScroll), dst: topIn(el, els.previewScroll) });
+    }
+  }
+  syncAnchors = anchors;
+}
+
+function bindScrollSync() {
+  const drive = (source, target) => () => {
+    if (!syncOn || !state.doc) return;
+    if (source === syncLockEl && performance.now() < syncLockUntil) return;
+    const srcMax = source.scrollHeight - source.clientHeight;
+    const dstMax = target.scrollHeight - target.clientHeight;
+    if (srcMax <= 0 || dstMax <= 0) return;
+    const dst = mapScroll(source.scrollTop, srcMax, dstMax, syncAnchors ?? []);
+    if (Math.abs(target.scrollTop - dst) >= 1) {
+      syncLockEl = target;
+      syncLockUntil = performance.now() + 120;
+      target.scrollTop = dst;
+    }
+  };
+  els.mainScroll.addEventListener('scroll', drive(els.mainScroll, els.previewScroll), { passive: true });
+  els.previewScroll.addEventListener('scroll', drive(els.previewScroll, els.mainScroll), { passive: true });
+  // 面板尺寸变化（三态布局/侧栏收展/窗口缩放）→ 两侧换行高度全变，锚点重算
+  const ro = new ResizeObserver(() => rebuildSyncAnchors());
+  ro.observe(els.mainScroll);
+  ro.observe(els.previewScroll);
+}
+
 // —— 实时预览（切片3）——
 
 let previewTimer = 0;
@@ -112,6 +181,7 @@ function schedulePreview() {
 
 async function renderPreview() {
   if (!state.doc) return;
+  syncAnchors = null; // 渲染在途/失败期间锚点表失效（旧行高对新内容），退化比例映射
   const seq = ++previewSeq; // 竞态令牌：慢响应不覆盖新文档的预览
   try {
     const { html } = await api('/render', { method: 'POST', body: JSON.stringify({ md: serializeDoc(state.doc) }) });
@@ -137,6 +207,7 @@ async function renderPreview() {
       container: layout,
       scrollEl: document.getElementById('ed-preview'),
     });
+    rebuildSyncAnchors(); // 引擎接管后量位（aside 视觉挪移不影响正文块位置）
   } catch (error) {
     if (seq !== previewSeq) return;
     hint((error.problems ?? [error.message]).join('\n'));
@@ -614,6 +685,9 @@ export function initEditor() {
   els.dir = $('ed-dir');
   els.paste = $('ed-paste');
   els.layout = $('ed-layout');
+  els.mainScroll = $('ed-main');
+  els.previewScroll = $('ed-preview');
+  els.sync = $('ed-sync');
   const savedLayout = localStorage.getItem('ed-layout');
   applyLayout(LAYOUTS.some(([m]) => m === savedLayout) ? savedLayout : LAYOUTS[0][0]);
   els.layout.addEventListener('click', () => {
@@ -626,6 +700,10 @@ export function initEditor() {
   els.sideToggle.addEventListener('click', () => {
     applySidebar(document.getElementById('editor-app').dataset.sidebar !== 'open');
   });
+  // 滚动联动（M9.5）：默认开，localStorage 记忆承 ed-layout/ed-sidebar 模式
+  els.sync.addEventListener('click', () => applySync(!syncOn));
+  applySync(localStorage.getItem('ed-sync') !== 'off');
+  bindScrollSync();
   els.new.addEventListener('click', newDoc);
   els.save.addEventListener('click', save);
   els.importFile.addEventListener('click', () => els.file.click());
