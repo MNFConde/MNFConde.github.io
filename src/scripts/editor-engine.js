@@ -3,9 +3,13 @@
  * 切片1：文档列表 / 打开 / 块编辑 / 保存（PUT 前服务端跑 gate 重放 + 构建同源渲染）。
  * 切片2：Alt+数字键块格式互斥切换（同键回段落）+ 划选建边注（findQuote 即时
  * 歧义校验——与构建同一份匹配代码）+ frontmatter 表单化编辑。
- * 块互斥由块模型结构性保证（editor-blocks.js）；实时预览随切片3、导入随切片4。
+ * 切片3：防抖 150ms 实时预览——POST /api/dev/render（构建同源管线渲染，白得
+ * images.js 尺寸回填）→ 复刻 NoteLayout DOM（.note-layout>.note-main+header h1）
+ * → initNotesEngine 真 引擎接管（碰撞/分流/回升真实生效，预览即最终效果）。
+ * 块互斥由块模型结构性保证（editor-blocks.js）；导入随切片4。
  */
 import { countQuoteHits, inlineToText, nextNoteId, normalizeQuote, parseDoc, serializeDoc } from '../lib/editor-blocks.js';
+import { initNotesEngine } from './notes-engine.js';
 
 const BLOCK_LABELS = {
   p: '段落',
@@ -25,6 +29,7 @@ const state = {
   doc: null,
   dirty: false,
   focusIndex: -1,
+  disposePreview: null,
 };
 
 const $ = (id) => document.getElementById(id);
@@ -51,6 +56,51 @@ function status() {
 function autoResize(ta) {
   ta.style.height = 'auto';
   ta.style.height = `${ta.scrollHeight}px`;
+}
+
+// —— 实时预览（切片3）——
+
+let previewTimer = 0;
+let previewSeq = 0;
+
+function touch() {
+  state.dirty = true;
+  status();
+  schedulePreview();
+}
+
+function schedulePreview() {
+  clearTimeout(previewTimer);
+  previewTimer = setTimeout(renderPreview, 150);
+}
+
+async function renderPreview() {
+  if (!state.doc) return;
+  const seq = ++previewSeq; // 竞态令牌：慢响应不覆盖新文档的预览
+  try {
+    const { html } = await api('/render', { method: 'POST', body: JSON.stringify({ md: serializeDoc(state.doc) }) });
+    if (seq !== previewSeq) return;
+    state.disposePreview?.();
+    els.preview.innerHTML = '';
+    const layout = document.createElement('main');
+    layout.className = 'note-layout';
+    const article = document.createElement('article');
+    article.className = 'note-main';
+    const header = document.createElement('header');
+    const h1 = document.createElement('h1');
+    h1.textContent = String(fmEntry('title')?.value ?? '');
+    header.appendChild(h1);
+    article.appendChild(header);
+    const body = document.createElement('div');
+    body.innerHTML = html;
+    article.appendChild(body);
+    layout.appendChild(article);
+    els.preview.appendChild(layout);
+    state.disposePreview = initNotesEngine(); // 真引擎：碰撞布局/分流回升照常生效
+  } catch (error) {
+    if (seq !== previewSeq) return;
+    hint((error.problems ?? [error.message]).join('\n'));
+  }
 }
 
 // —— 文档列表 / 打开 ——
@@ -83,6 +133,7 @@ async function openDoc(slug) {
   els.slug.value = slug;
   renderFm();
   renderBlocks();
+  renderPreview();
   loadDocs();
   status();
   hint();
@@ -104,6 +155,7 @@ function newDoc() {
   els.slug.value = '';
   renderFm();
   renderBlocks();
+  renderPreview();
   focusBlock(0);
   loadDocs();
   status();
@@ -137,8 +189,7 @@ function setFmValue(key, value) {
       raw: Array.isArray(value) ? `[${value.join(', ')}]` : String(value),
     });
   }
-  state.dirty = true;
-  status();
+  touch();
 }
 
 function renderFm() {
@@ -209,8 +260,7 @@ function blockHead(b, i) {
 function bindText(el, block, key) {
   el.addEventListener('input', () => {
     block[key] = el.value;
-    state.dirty = true;
-    status();
+    touch();
     autoResize(el);
   });
   el.addEventListener('focus', () => {
@@ -300,9 +350,8 @@ function switchBlockType(i, target) {
   const next = b.type === target ? 'p' : target;
   for (const key of ['id', 'quote', 'body', 'lang', 'src', 'alt', 'title']) delete b[key];
   Object.assign(b, next === 'code' ? { type: 'code', lang: '', text } : { type: next, text });
-  state.dirty = true;
+  touch();
   renderBlocks();
-  status();
   focusBlock(i);
 }
 
@@ -335,9 +384,8 @@ function createNoteFromSelection(ta) {
   const after = blockIndex >= 0 ? blockIndex : at; // 命中块优先（选区与命中块通常同段）
   const id = nextNoteId(state.doc.blocks);
   state.doc.blocks.splice(after + 1, 0, { type: 'note', id, quote, body: '' });
-  state.dirty = true;
+  touch();
   renderBlocks();
-  status();
   focusBlock(after + 1);
   hint(`边注 #${id} 已建：「${quote}」`);
 }
@@ -353,18 +401,16 @@ function addBlock(type) {
     note: { type: 'note', id: nextNoteId(state.doc.blocks), quote: '', body: '' },
   }[type];
   state.doc.blocks.splice(insertIndex(), 0, structuredClone(empty));
-  state.dirty = true;
+  touch();
   renderBlocks();
-  status();
   focusBlock(insertIndex() - 1);
 }
 
 function removeBlock(i) {
   state.doc.blocks.splice(i, 1);
   state.focusIndex = -1;
-  state.dirty = true;
+  touch();
   renderBlocks();
-  status();
 }
 
 function moveBlock(i, delta) {
@@ -373,9 +419,8 @@ function moveBlock(i, delta) {
   const [b] = state.doc.blocks.splice(i, 1);
   state.doc.blocks.splice(j, 0, b);
   state.focusIndex = j;
-  state.dirty = true;
+  touch();
   renderBlocks();
-  status();
 }
 
 // —— 保存 ——
@@ -400,8 +445,8 @@ async function save() {
 }
 
 export function initEditor() {
-  for (const id of ['docs', 'slug', 'status', 'hint', 'blocks', 'toolbar', 'new', 'save', 'fm']) {
-    els[id] = $(`ed-${id}`);
+  for (const id of ['docs', 'slug', 'status', 'hint', 'blocks', 'toolbar', 'new', 'save', 'fm', 'preview']) {
+    els[id] = $(`ed-${id === 'preview' ? 'preview-mount' : id}`);
   }
   els.new.addEventListener('click', newDoc);
   els.save.addEventListener('click', save);
@@ -409,10 +454,7 @@ export function initEditor() {
     const type = e.target.closest('button')?.dataset.add;
     if (type) addBlock(type);
   });
-  els.slug.addEventListener('input', () => {
-    state.dirty = true;
-    status();
-  });
+  els.slug.addEventListener('input', () => touch());
   document.addEventListener('keydown', (e) => {
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
       e.preventDefault();

@@ -117,9 +117,7 @@ export function initNotesEngine() {
 
   const mq = window.matchMedia(MQ_DESKTOP);
   const onMq = () => (mq.matches ? activate() : deactivate());
-  mq.addEventListener('change', onMq);
-
-  const rafWrap = (fn) => {
+  mq.addEventListener('change', onMq);  const rafWrap = (fn) => {
     let frame = 0;
     return () => {
       if (frame) return;
@@ -150,9 +148,7 @@ export function initNotesEngine() {
   window.addEventListener('scroll', onScroll, { passive: true });
   window.addEventListener('resize', onResize);
   window.addEventListener('load', remeasure);
-  document.fonts?.ready.then(remeasure);
-
-  // —— 高亮管理（映射/管理基建，桌面 pinned 与窄屏模态两分支共用）——
+  document.fonts?.ready.then(remeasure);  // —— 高亮管理（映射/管理基建，桌面 pinned 与窄屏模态两分支共用）——
   function setActive(ids) {
     activeIds = ids;
     layoutEl.classList.add('has-focus');
@@ -228,12 +224,14 @@ export function initNotesEngine() {
     if (sameSet(ids, activeIds)) clearSelection();
     else applySelection(ids);
   });
-  document.addEventListener('click', (e) => {
+  const onDocClick = (e) => {
     if (!targetIds(e.target)) clearSelection();
-  });
-  document.addEventListener('keydown', (e) => {
+  };
+  document.addEventListener('click', onDocClick);
+  const onKeydown = (e) => {
     if (e.key === 'Escape') clearSelection();
-  });
+  };
+  document.addEventListener('keydown', onKeydown);
 
   // —— 交互：单条边注 hover 复制 + 双击侧栏空白全选边注 ——
   // 拖拽级按栏隔离为浏览器原生限制（选区跟 DOM 序），复制/全选走程序化路径
@@ -311,16 +309,28 @@ export function initNotesEngine() {
       }
     }, 1600);
   });
-  document.addEventListener(
-    'click',
-    (e) => {
-      if (cloneBox && !cloneBox.contains(e.target)) {
-        clearClone();
-        getSelection()?.removeAllRanges();
-      }
-    },
-    true
-  );
+  const onDocClickCapture = (e) => {
+    if (cloneBox && !cloneBox.contains(e.target)) {
+      clearClone();
+      getSelection()?.removeAllRanges();
+    }
+  };
+  document.addEventListener('click', onDocClickCapture, true);
+
+  // 卸载钩子（M9 预览复用）：摘除 document/window 级监听——layoutEl 内监听随元素
+  // 移除自然消亡；dispose 后 active=false 使 fonts.ready 迟到回调安全 no-op
+  const dispose = () => {
+    mq.removeEventListener('change', onMq);
+    window.removeEventListener('scroll', onScroll);
+    window.removeEventListener('resize', onResize);
+    window.removeEventListener('load', remeasure);
+    document.removeEventListener('click', onDocClick);
+    document.removeEventListener('keydown', onKeydown);
+    document.removeEventListener('click', onDocClickCapture, true);
+    clearClone();
+    closeModal();
+  };
 
   onMq();
+  return dispose;
 }
