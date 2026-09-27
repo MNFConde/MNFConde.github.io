@@ -211,6 +211,13 @@ body {
 }
 
 /* —— M3 交互：边注复制按钮（桌面 hover 浮现；窄屏内联模式无此交互）—— */
+
+/* 折叠条预览 span：引擎无条件注入，桌面默认隐藏、窄屏块重显（M4 起缺失此规则，
+   桌面边注正文前一直拼着引用词——M9.1 实证发现补上） */
+.note-preview {
+  display: none;
+}
+
 .note-copy {
   position: absolute;
   top: 0;
