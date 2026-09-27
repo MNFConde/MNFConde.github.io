@@ -106,8 +106,10 @@ import '../styles/global.css';
   .eb textarea.eb-code { font-family: ui-monospace, Consolas, monospace; }
   .eb .eb-note-meta input { color: #555; }
   .eb button { font-size: 12px; padding: 2px 8px; }
-  #ed-toolbar { position: sticky; bottom: 0; display: flex; gap: 6px; align-items: center; padding: 8px 0; background: linear-gradient(transparent, #fff 40%); }
-  .ed-cheatsheet { font-size: 12px; color: #888; margin-left: 8px; }
+  /* 单行 flex 挤压会把按钮/速查都压到内容宽以下而折行：wrap + 速查占满整行（basis:100%）= 按钮独享首行 */
+  #ed-toolbar { position: sticky; bottom: 0; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 8px 0; background: linear-gradient(transparent, #fff 40%); }
+  #ed-toolbar button { white-space: nowrap; }
+  .ed-cheatsheet { flex-basis: 100%; white-space: nowrap; font-size: 12px; color: #888; margin-left: 8px; }
   #ed-preview { flex: 1.2; min-width: 320px; min-height: 240px; overflow: auto; padding: 16px; }
   /* 预览面板 = 响应式判据的度量对象（M9.1）：容器查询驱动窄屏形态，正文列钳在面板宽内。
      生产行为不受影响——全站无其它 container-type 祖先，@container 仅在此命中 */
