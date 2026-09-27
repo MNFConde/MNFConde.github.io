@@ -320,3 +320,16 @@ M9 辅助注解编辑器（note 模式 UI 注解写作台；dev-only 不进产�
         ☐ posts（:::orig 原文对照）编辑支持 @low
         ☐ 预览↔编辑锚点联动（点击预览边注定位编辑块） @low
     ✔ M9 全量落地（切片1-4）@done(26-09-27 10:45)（e847d5c 规划 + 9c4def6 + 036315b + 8601ceb + b92b0f4；坑两条入 note-editor.md：Vite 注入路由样式模块缓存陈旧须重启 dev、Astro dev content 变更触发整页刷新——编辑器未保存态在内存，刷新即失）
+
+M9.1 预览容器自适应 + 布局切换（26-09-27 用户真机复核触发）:
+    依据：复核两症状——①缩放后控件聚到面板正中 ②预览仍桌面尺寸、窄屏形态未自动应用；诊断 = 响应式判据（引擎 matchMedia + CSS @media）度量的是浏览器视口而非预览面板，切片4 的固定缩小令牌只是几何补丁不构成容器自适应
+    既定约束（26-09-27 定案）:
+        容器模式 = notes-engine 增可选参 { container, scrollEl }：ResizeObserver 按面板宽激活（断点 1100 与容器查询配对）+ 滚动坐标系换源（scrollY/docY 以面板为参照，pinned 跟随面板滚动）；无参调用保持视口 matchMedia——生产行为零变化
+        窄屏形态 = 容器查询复刻：#ed-preview-mount 设 container-type:inline-size，@container (max-width:1100px) 复刻 M4 折叠条/模态块；视口 @media 与容器 @container 结构性不冲突（面板宽 ≤ 视口宽，同窄时规则一致、异宽时只有一套生效）；--main-width: min(42rem,100%) 钳正文列（撤切片4 固定缩小令牌，漂移症状随之消失）
+        布局三态 = side 并排 / stack 上下（编辑上）/ stack-rev 上下（预览上）：#ed-content 包裹编辑+预览，data-layout 换 flex 向、stack-rev 用 order 反序；localStorage('ed-layout') 记忆；上下模式面板全宽 → 容器 >1100 自动切桌面三栏（布局切换即缩放模式切换的联动来源）
+    切片1 修复 + 特性:
+        ✔ 引擎容器模式 + 容器查询窄屏形态 + 正文列钳制 @critical @done(26-09-27 11:15)（实证：并排 631px 面板 = 引擎未激活 + 9 折叠条 + 正文铺满无居中漂移；切上下 1363px = RO 激活 + absolute + 672px 正文列 + 边注落面板内；切回并排 RO 逆切换摘 inline top；折叠条点击模态 + Esc 关闭）
+        ✔ 布局三态切换 + localStorage 持久化 @high @done(26-09-27 11:15)（side→stack→stack-rev 循环、反序 previewAbove、刷新还原）
+        ✔ 存量 bug 顺修：.note-preview 桌面无隐藏规则（M4 起）——global.css 补基线 display:none @critical @done(26-09-27 11:15)（症状 = 桌面边注正文前拼重复引用词；生产页实测桌面隐藏、390px 折叠条 314px 宽正常——99efa47）
+        ✔ 回归：生产 /notes-demo/ 桌面形态不受引擎改动影响（无参路径 matchMedia 照旧）+ vitest 90 绿 + build 5 页不变 @critical @done(26-09-27 11:21)
+    ✔ M9.1 全量落地 @done(26-09-27 11:25)（99efa47 存量修复 + 83bd73e 主体 + docs；教训入 note-editor.md：响应式判据的度量对象、DOM 断言看不见的可见性 bug 靠双态实测）

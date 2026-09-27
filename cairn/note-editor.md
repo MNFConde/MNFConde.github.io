@@ -24,6 +24,8 @@ notes 模式的源语法（`:note-m[词句]{#id}` 行内锚 / `:::note-m` 容器
 - **划选建锚即时校验**：编辑器直接 import `segment.js` 的 `findQuote`（纯函数同构）——选区经 `inlineToText` 剥行内语法对齐构建检索空间，多匹配提示扩大选区；编辑器与构建用同一份匹配代码，所见即所建。
 - **真引擎预览**：预览容器复刻 NoteLayout DOM（`.note-layout>.note-main`）+ `initNotesEngine()`——碰撞布局/分流/click 点亮真实生效；引擎补 `dispose()` 返回值（摘 window/document 监听），每次重渲染先卸旧再启新，既有调用方忽略返回值不受影响。
 - **往返保真**：`editor-blocks.js` 解析策略 = 未识别行（列表/引用/裸 html）原样并入 p 块文本，notes-demo.md 字节级往返零 diff（vitest 断言）；frontmatter 以 raw 值原序序列化，表单编辑才改写。
+- **预览容器自适应（M9.1 定案）**：响应式判据的度量对象必须是**容器**而非视口——引擎增可选参 `{ container, scrollEl }`（ResizeObserver 按面板宽激活，断点 1100 与容器查询配对；scrollY/docY 换源到面板滚动），无参调用保持视口 matchMedia、生产行为零变化；CSS 侧 `container-type: inline-size` + `@container (max-width: 1100px)` 复刻 M4 窄屏块。视口 @media 与容器 @container 结构性不冲突：面板宽 ≤ 视口宽，同窄时规则一致、异宽时只有一套生效。正文列 `--main-width: min(42rem, 100%)` 钳面板宽（固定缩小令牌路线废弃——那只是几何补丁，不构成自适应）。
+- **布局三态（M9.1）**：side / stack / stack-rev（`#ed-content` 包裹 + data-layout 换向 + order 反序，localStorage 记忆）；上下模式面板全宽 → 容器查询自动切桌面三栏——布局切换天然联动缩放模式切换。
 
 ## 经验
 
@@ -33,6 +35,8 @@ notes 模式的源语法（`:note-m[词句]{#id}` 行内锚 / `:::note-m` 容器
 
 ## 教训
 
+- **响应式分支的度量对象**：`matchMedia` 与 `@media` 都测浏览器视口；嵌在面板里的组件要自适应，判据必须是容器（ResizeObserver / @container）。症状识别法：缩放浏览器后面板内控件错位、形态不随面板宽切换。
+- **「注释声称的 CSS」要实证**：M4 注释写「宽屏 CSS 隐藏 .note-preview」，实际规则从未存在——桌面边注正文前拼重复引用词存活九个里程碑才被 M9.1 双态实测抓出。可见性断言别只看 DOM 存在，要看 computed display + 双断点实测。
 - **Vite 对注入路由的样式模块缓存陈旧**：改 `.astro` 文件后 HTML 更新但 `<style>` 模块仍旧（watch 触发、不失效）——症状 = HTML 新 CSS 旧；解法 = 重启 dev server。排障抓手：curl 页面 grep 样式本体 + `getComputedStyle` 验证令牌落值。
 - **Astro dev 的 content 变更触发整页刷新**：编辑器未保存态在内存，PUT 落盘/其它内容文件变化都可能引发刷新丢编辑态——脏态 confirm 只防切换不防刷新；接受为 dev 工具特性（及时 Ctrl+S）。
 - 视觉模型复核抓出两个 DOM 断言看不见的问题（静态乱码 + 边注裁剪）——自动化断言之外截图复核值得保留。
