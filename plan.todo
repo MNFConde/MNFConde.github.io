@@ -300,22 +300,23 @@ M9 辅助注解编辑器（note 模式 UI 注解写作台；dev-only 不进产�
         保存校验 = PUT 前中间件跑 content-gate 同款管线重放（重放逻辑抽共享），失配报错回显 UI 不落盘——承 M2/M5 strict 哲学（file.fail 被 content layer 吞，gate 是真正执行点）
         测试 = 序列化/反解（md ⇄ blocks）+ frontmatter 合并纯函数 vitest；编辑器 DOM 层浏览器实证（承 toc-engine 先例）
     切片1 共享管线 + dev API + 块模型:
-        ☐ md-pipeline.js 抽离（astro.config 插件列表共享化）+ content-gate 重放逻辑共享 @critical
-        ☐ dev integration：四端点中间件（dev-only 注册 + slug 白名单 + PUT 前 gate 重放校验） @critical
-        ☐ 块模型序列化器/反解器（blocks ⇄ md，覆盖 note 引用串/essay/标题/代码/图片路径块）+ vitest @critical
-        ☐ 编辑页骨架：src/pages/dev/editor.astro（DEV 守门）+ 文档列表侧栏（GET 列表 → 点开反解入编辑） @high
+        ✔ md-pipeline.js 抽离（astro.config 插件列表共享化）+ content-gate 重放逻辑共享 @critical @done(26-09-27 10:15)（collectRemarkProblems；gate 测试改 import 共享实现，语义不变）
+        ✔ dev integration：四端点中间件（dev-only 注册 + slug 白名单 + PUT 前 gate 重放校验） @critical @done(26-09-27 10:15)（renderMarkdown 走 @astrojs/markdown-remark createMarkdownProcessor——Astro 同款处理器消费同插件数组，零新依赖且 file.fail 正常抛出）
+        ✔ 块模型序列化器/反解器（blocks ⇄ md，覆盖 note 引用串/essay/标题/代码/图片路径块）+ vitest @critical @done(26-09-27 10:20)（editor-blocks.js 9 例；notes-demo.md 字节级往返实测零 diff；未识别行原样入 p 保任意文档可开）
+        ✔ 编辑页骨架：editor-page.astro + 文档列表侧栏（GET 列表 → 点开反解入编辑） @high @done(26-09-27 10:15)（页面放 src/editor/ 由 integration 仅 dev 时 injectRoute——build 不产出路由）
     切片2 块格式快捷键 + 划选建锚:
-        ☐ 块格式切换：数字键互斥切 type（同键 toggle 回段落）+ 工具栏等价按钮 @critical
-        ☐ 划选建边注：规范化引用串捕获 + findQuote 歧义即时校验 + 侧栏批注输入 + id 递增管理 @critical
-        ☐ frontmatter 表单：字段编辑 + 保存序列化 + 新建/导入缺省补齐 @high
+        ✔ 块格式切换：数字键互斥切 type（同键 toggle 回段落）+ 工具栏等价按钮 @critical @done(26-09-27 10:22)（Alt+1..5——裸数字键与正文输入冲突故带修饰；IAB 实证 p→h2→essay→回 p 三态）
+        ✔ 划选建边注：规范化引用串捕获 + findQuote 歧义即时校验 + 侧栏批注输入 + id 递增管理 @critical @done(26-09-27 10:22)（选区经 inlineToText 剥行内语法对齐构建检索空间；实证 #n10 建立 + 聚焦批注 + 预览 9→10）
+        ✔ frontmatter 表单：字段编辑 + 保存序列化 + 新建/导入缺省补齐 @high @done(26-09-27 10:22)（六字段表单，tags 逗号分隔）
     切片3 实时预览:
-        ☐ render 端点接线：防抖 ~150ms POST → HTML 注入预览容器 @critical
-        ☐ 预览容器复刻 NoteLayout DOM 结构 + init 真 notes-engine（碰撞布局真实生效） @critical
-        ☐ 预览↔编辑锚点联动（点击预览边注定位编辑块） @low
+        ✔ render 端点接线：防抖 ~150ms POST → HTML 注入预览容器 @critical @done(26-09-27 10:24)（竞态令牌防慢响应覆盖）
+        ✔ 预览容器复刻 NoteLayout DOM 结构 + init 真 notes-engine（碰撞布局真实生效） @critical @done(26-09-27 10:24)（notes-engine 增 dispose 卸载钩子摘 window/document 监听，既有调用方不受影响；实证 data-notes-float 激活 + 9 边注 inline top + 交叠段 data-notes="n4 n5"）
     切片4 导入 + 收尾:
-        ☐ 导入：粘贴/选文件 md → frontmatter 解析补齐 → slug 去重 → PUT 入 notes @high
-        ☐ 浏览器实证全闭环（列/开/改/存/导入/预览/快捷键互斥/歧义校验）+ vitest 全绿 + 生产 build 断言零新增端点 @critical
-        ☐ 文档收尾：plan 勾选 + cairn 主题笔记（note-editor.md）+ LOG + AGENTS 状态行 @high
+        ✔ 导入：粘贴/选文件 md → frontmatter 解析补齐 → slug 去重 → PUT 入 notes @high @done(26-09-27 10:35)（title 取首标题/回退名、date 补当日；slug 清洗 [^a-z0-9]→- 冲突 -2 递增；校验失败不落盘仍载入编辑器回显问题）
+        ✔ 浏览器实证全闭环（列/开/改/存/导入/预览/快捷键互斥/歧义校验）+ vitest 全绿 + 生产 build 断言零新增端点 @critical @done(26-09-27 10:38)（curl：PUT 合法 200 落盘/引用失配 400 不落盘/保留 slug 400；IAB 1600×900：27 块解析、脏态 confirm、保存 未保存→已保存 + 落盘核对；vitest 90 绿 + build 5 页不变 + dist 无 dev 路由；实证两修：补 meta charset 修静态模板乱码、预览面板局部缩小三栏令牌修边注裁剪）
+        ✔ 文档收尾：plan 勾选 + cairn 主题笔记（note-editor.md）+ LOG + AGENTS 状态行 @high @done(26-09-27 10:45)
     观察项（定案未纳入，触发即办）:
         ☐ 图片本地上传端点（dev API 写图片文件进仓库并插路径） @low
         ☐ posts（:::orig 原文对照）编辑支持 @low
+        ☐ 预览↔编辑锚点联动（点击预览边注定位编辑块） @low
+    ✔ M9 全量落地（切片1-4）@done(26-09-27 10:45)（e847d5c 规划 + 9c4def6 + 036315b + 8601ceb + b92b0f4；坑两条入 note-editor.md：Vite 注入路由样式模块缓存陈旧须重启 dev、Astro dev content 变更触发整页刷新——编辑器未保存态在内存，刷新即失）
