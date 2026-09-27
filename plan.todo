@@ -384,3 +384,17 @@ M9.4 编辑器体验补丁：文档记忆 + 软换行渲染（26-09-27 用户需
         ✔ remarkSoftBreak 插件 + md-pipeline 注册（构建/重放/预览同源） @critical @done(26-09-27 16:40)（b6d0392；单测 6 例 + 集成 2 例：渲染 <br>、跨折行引用命中 data-notes）
         ✔ segment 零宽元素保全：isEmpty 收窄仅空文本 + 根层/build 内层零宽分支 @critical @done(26-09-27 16:40)（b6d0392；否则带边注段落切分时 br 被游标吞掉换行丢失——pushCoalesced 把空 children 元素判空丢弃是暗坑；测试 1 例双场景）
         ✔ 全链路验证：vitest 132 绿（123+9）+ IAB 编辑器预览/站点 /lecture-notes 各 13 处题记两行 + /notes-demo 边注结构回归完好 @critical @done(26-09-27 16:45)
+
+M9.5 编辑↔预览滚动联动（26-09-27 用户需求触发）:
+    方案定案（26-09-27 两轮只读评估后用户拍板方案 B）:
+        锚点插值而非纯比例——两侧高度分布不成比例（编辑侧块头/表单 vs 预览侧浮动边注/
+            图片），比例映射中后段漂移明显；块模型使两侧天然一一对应，锚点插值白得「逐块对齐」
+        note 块预览锚点 = 正文锚元素（`.note-anchor[id]/[data-notes~]`，与 notes-engine
+            召唤同源选择器），不追 aside——其视觉位置是碰撞分流产物，会被挤出面板且无稳定坐标
+        首尾无锚区（frontmatter 表单/页头）以 (0,0)/(srcMax,dstMax) 伪锚点按比例封边
+        性能前提实测：lecture-notes（34K 字符）渲染往返 63-83ms、4× 合成文档 ~240ms 线性，
+            150ms 是防抖间隔非吞吐承诺——渲染异步 + seq 令牌，慢只迟到不堆积
+    切片1:
+        ✔ src/lib/scroll-sync.js mapScroll 纯函数（区间线性插值 + 伪锚点封边 + 单调化：src 重复丢弃/dst 回退越界钳位）+ 单测 8 例 @critical @done(26-09-27 16:52)（3617f27）
+        ✔ 引擎接线：双侧 scroll 监听（passive）+ 回声锁（程序滚动容器 120ms 窗口忽略自身事件，防双向回环）+ 锚点表三时机（renderPreview 成功后重建 / 双容器 ResizeObserver 重建 / 在途失败置 null 退化纯比例）+ 联动开关按钮（默认开，localStorage('ed-sync') 承三态记忆模式） @critical @done(26-09-27 16:52)（3617f27）
+        ✔ 浏览器实证：lecture-notes 309 块三档滚动对齐 ±1 块；反向跟随；开关后双向冻结；notes-demo 9 边注滚块落正文段（非 aside）且锚元素近预览视口顶；input 触发重建后联动恢复；重载还原干净态（slug 恢复 + 默认开） @high @done(26-09-27 16:54)（vitest 140 绿 + build 6 页绿 + dist 无 dev 路由）

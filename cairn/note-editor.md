@@ -32,6 +32,7 @@ notes 模式的源语法（`:note-m[词句]{#id}` 行内锚 / `:::note-m` 容器
 - **readBody 必须整体解码（M9.3）**：收集 Buffer 后 `Buffer.concat(...).toString('utf8')`，**禁止** `for await (chunk) data += chunk`。上限改按字节计。细节见教训节。
 - **软换行渲染换行但保留匹配空格（M9.4）**：自研 `remarkSoftBreak`（管线末位、remarkOrig 之后）把段内软换行拆为 `文本(尾空格)+break+文本`——`<br>` 前的空格 HTML 折叠视觉无差，却让 `flattenBlock`（空白→单空格、br 零字符）的边注检索空间与引用串保持互match。原生 hard break（remark 已剥行尾空白）同补空格，两种换行写法语义一致。**否决两条路**：remark-breaks 依赖（无空格拆分 = 跨折行引用永久失配）；改 flattenBlock 给 br 合成空格（segment 游标机制建立在每字符↔文本节点映射上，风险大 diff 大）。
 - **文档记忆只存 slug（M9.4）**：content 数据仓库重写即广播 `full-reload path:*`（Astro 源码 `vite-plugin-content-virtual-mod.js` 的 `invalidateDataStore`），保存落盘本身触发——`ed-last-slug` 三入口写入（打开/保存/导入）+ 启动时列表内存在才重开；滚动不存：内层容器滚动浏览器不代管，预览重渲染又有钳位瑕疵，回文档开头为定案取舍。
+- **滚动联动 = 锚点插值 + 回声锁（M9.5）**：编辑侧 `.eb` 逐块、预览侧逐个消费渲染顶层元素（**note 块跳过 aside、改取正文锚元素**——选择器与 notes-engine 召唤同源 `.note-anchor[id]/[data-notes~]`；aside 视觉位置是碰撞分流产物，会被挤出面板，不可作锚点），区间线性插值走 `scroll-sync.js` 纯函数（首尾伪锚点 `(0,0)/(max,max)` 比例封边、src 重复丢弃/dst 回退钳位的单调化）；回声锁 = 程序滚动的容器 120ms 窗口内忽略自身 scroll 事件（双向同步防回环的标准解）；锚点表三时机重建——预览成功渲染后、双容器 ResizeObserver（三态布局/侧栏收展使换行高度全变）、在途/失败置 null 退化纯比例；开关默认开，`localStorage('ed-sync')` 记忆。否决纯比例映射：两侧高度分布不成比例（块头/表单 vs 浮动边注/图片），中后段漂移明显。
 
 ## 经验
 
@@ -54,5 +55,5 @@ notes 模式的源语法（`:note-m[词句]{#id}` 行内锚 / `:::note-m` 容器
 ## 开放问题
 
 - posts（:::orig 原文对照）编辑支持——@low 观察项。
-- 预览↔编辑锚点联动（点击预览边注定位编辑块）——@low 观察项。
+- 点击预览边注/正文定位编辑块（滚动联动已于 M9.5 落地，点击级反向定位仍未做）——@low 观察项。
 - figure 无 title 时不截图注（源文档未写 title 时 0 figcaption，属预期；若需默认图注需另定策略）——@low。
