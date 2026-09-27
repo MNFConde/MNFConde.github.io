@@ -4,13 +4,26 @@
 // 样式为 dev 工具专属（is:global + ed- 前缀隔离），不入站点外观令牌体系。
 import '../styles/global.css';
 ---
-<div id="editor-app">
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>notes 编辑器（dev-only）</title>
+  </head>
+  <body>
+    <div id="editor-app">
   <aside id="ed-sidebar">
     <div class="ed-side-head">
       <strong>notes 文档</strong>
       <button type="button" id="ed-new" title="新建空白文档">新建</button>
     </div>
     <ul id="ed-docs"></ul>
+    <div class="ed-import">
+      <button type="button" id="ed-import-file">导入 .md 文件</button>
+      <input type="file" id="ed-file" accept=".md,.markdown,text/markdown" hidden />
+      <textarea id="ed-paste" placeholder="或粘贴 markdown 全文后点下方按钮…"></textarea>
+      <button type="button" id="ed-import-paste">粘贴导入</button>
+    </div>
   </aside>
   <main id="ed-main">
     <div id="ed-bar">
@@ -31,8 +44,10 @@ import '../styles/global.css';
       <span class="ed-cheatsheet">Alt+1..5 切块格式（同键回段落，互斥）· 段内划选 + Alt+N 建边注</span>
     </div>
   </main>
-  <section id="ed-preview"><div id="ed-preview-mount"></div></section>
-</div>
+    <section id="ed-preview"><div id="ed-preview-mount"></div></section>
+    </div>
+  </body>
+</html>
 
 <style is:global>
   /* dev 工具样式：不入 theme.css 令牌体系（M1.5 约束管站点外观，此页不发布） */
@@ -45,6 +60,8 @@ import '../styles/global.css';
   #ed-docs li:hover { background: #eee; }
   #ed-docs li.is-active { background: #dbeafe; }
   #ed-docs .ed-doc-slug { display: block; color: #888; font-size: 12px; }
+  .ed-import { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; padding-top: 8px; border-top: 1px solid #ddd; }
+  .ed-import textarea { min-height: 72px; resize: vertical; border: 1px solid #ddd; border-radius: 4px; padding: 4px 6px; font: 12px/1.5 ui-monospace, Consolas, monospace; }
   #ed-main { flex: 1.4; min-width: 360px; overflow-y: auto; padding: 12px 16px 40vh; border-right: 1px solid #ccc; }
   #ed-bar { display: flex; gap: 12px; align-items: center; margin-bottom: 8px; }
   #ed-bar .ed-slug-label { color: #666; }
@@ -68,7 +85,11 @@ import '../styles/global.css';
   .eb button { font-size: 12px; padding: 2px 8px; }
   #ed-toolbar { position: sticky; bottom: 0; display: flex; gap: 6px; align-items: center; padding: 8px 0; background: linear-gradient(transparent, #fff 40%); }
   .ed-cheatsheet { font-size: 12px; color: #888; margin-left: 8px; }
-  #ed-preview { flex: 1.2; min-width: 320px; overflow-y: auto; padding: 16px; }
+  #ed-preview { flex: 1.2; min-width: 320px; overflow: auto; padding: 16px; }
+  /* 预览面板内缩小三栏令牌（dev 工具局部覆盖，不入 theme.css 体系）：
+     正文列弹性、边注轨收窄，令 .note-layout 的三栏几何落进面板宽度；
+     溢出时横向滚动兜底，边注不静默裁剪 */
+  #ed-preview-mount { --main-width: min(24rem, 55%); --margin-width: 9rem; --gutter: 1.25rem; }
   #ed-preview-mount:empty::before { content: '实时预览（150ms 防抖，渲染与构建同源）'; color: #aaa; }
 </style>
 

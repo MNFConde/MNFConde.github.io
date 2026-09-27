@@ -6,7 +6,9 @@
  * 切片3：防抖 150ms 实时预览——POST /api/dev/render（构建同源管线渲染，白得
  * images.js 尺寸回填）→ 复刻 NoteLayout DOM（.note-layout>.note-main+header h1）
  * → initNotesEngine 真 引擎接管（碰撞/分流/回升真实生效，预览即最终效果）。
- * 块互斥由块模型结构性保证（editor-blocks.js）；导入随切片4。
+ * 切片4：导入（文件/粘贴）——补齐 frontmatter、slug 清洗去重、PUT 前服务端
+ * 重放校验，失败不落盘仍载入编辑器回显问题。
+ * 块互斥由块模型结构性保证（editor-blocks.js）。
  */
 import { countQuoteHits, inlineToText, nextNoteId, normalizeQuote, parseDoc, serializeDoc } from '../lib/editor-blocks.js';
 import { initNotesEngine } from './notes-engine.js';
@@ -444,12 +446,81 @@ async function save() {
   }
 }
 
+// —— 导入（切片4）：外部 md → 补齐 frontmatter → slug 清洗去重 → 落 notes ——
+// 校验失败不落盘但仍载入编辑器（问题回显，修完 Ctrl+S 再落）。
+
+function sanitizeSlug(name) {
+  return String(name ?? '')
+    .toLowerCase()
+    .replace(/\.(md|markdown)$/i, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 64);
+}
+
+function fmHas(key) {
+  return state.doc.frontmatter.some((e) => e.key === key);
+}
+
+function ensureFm(doc, fallbackTitle) {
+  if (!doc.frontmatter.some((e) => e.key === 'title')) {
+    const firstHeading = doc.blocks.find((b) => b.type === 'h2' || b.type === 'h3')?.text ?? '';
+    const title = String(doc.frontmatter.find((e) => e.key === 'title')?.value ?? '') || firstHeading || fallbackTitle;
+    doc.frontmatter.unshift({ key: 'title', raw: title, value: title });
+  }
+  if (!doc.frontmatter.some((e) => e.key === 'date')) {
+    const today = new Date().toISOString().slice(0, 10);
+    doc.frontmatter.push({ key: 'date', raw: today, value: today });
+  }
+}
+
+async function importFromText(mdText, fallbackName) {
+  if (state.dirty && !confirm('有未保存改动，放弃并导入？')) return;
+  const doc = parseDoc(mdText);
+  const { docs } = await api('/notes');
+  let slug = sanitizeSlug(fallbackName) || `note-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}`;
+  const base = slug;
+  let n = 2;
+  while (docs.some((d) => d.slug === slug)) slug = `${base}-${n++}`;
+  state.slug = slug;
+  state.doc = doc;
+  ensureFm(doc, slug);
+  state.dirty = true;
+  els.slug.value = slug;
+  renderFm();
+  renderBlocks();
+  renderPreview();
+  status();
+  try {
+    await api(`/notes/${slug}`, { method: 'PUT', body: JSON.stringify({ md: serializeDoc(doc) }) });
+    state.dirty = false;
+    status();
+    hint(`已导入并保存：src/content/notes/${slug}.md`);
+    loadDocs();
+  } catch (error) {
+    hint(`已载入（未落盘，问题如下，修完 Ctrl+S 再存）：\n${(error.problems ?? [error.message]).join('\n')}`);
+  }
+}
+
 export function initEditor() {
   for (const id of ['docs', 'slug', 'status', 'hint', 'blocks', 'toolbar', 'new', 'save', 'fm', 'preview']) {
     els[id] = $(`ed-${id === 'preview' ? 'preview-mount' : id}`);
   }
+  els.importFile = $('ed-import-file');
+  els.importPaste = $('ed-import-paste');
+  els.file = $('ed-file');
+  els.paste = $('ed-paste');
   els.new.addEventListener('click', newDoc);
   els.save.addEventListener('click', save);
+  els.importFile.addEventListener('click', () => els.file.click());
+  els.file.addEventListener('change', async () => {
+    const file = els.file.files?.[0];
+    if (file) importFromText(await file.text(), file.name);
+    els.file.value = '';
+  });
+  els.importPaste.addEventListener('click', () => {
+    if (els.paste.value.trim()) importFromText(els.paste.value, 'imported');
+  });
   els.toolbar.addEventListener('click', (e) => {
     const type = e.target.closest('button')?.dataset.add;
     if (type) addBlock(type);
