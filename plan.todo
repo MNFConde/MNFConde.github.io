@@ -368,6 +368,6 @@ M9.3 图片导入与内容层相对引用事故（26-09-27 用户报障触发）
         ✔ collectImageProblems（md-pipeline 共享）接入 content-gate + PUT 前校验 @critical @done(26-09-27 15:16)（PUT 相对引用 400 拦截实证；存量 4 篇零返工——既有图皆 /img/ 绝对路径）
         ✔ 测试：http-body（分片/逐字节/上限）5 例 + import-assets 18 例 + md-pipeline 图片门禁 6 例 @critical @done(26-09-27 15:16)（vitest 123 绿 = 90 + 33）
     切片2 复导验证（用户第 3 点）:
-        ✔ 同一份 lecture_notes_中文版.md + images/ 经新流程复导全链路 @critical @done(26-09-27 15:22)（14 图搬入 public/img/lecture-notes/images/；正文与源逐字相等（仅尾换行归一）；U+FFFD 0；/lecture-notes 200 且 14 图全 width/height + 14 figure；查看器点击可用；vitest 123 绿 + build 6 页绿 + dist 无 dev 路由）
+        ✔ 同一份 lecture_notes_中文版.md + images/ 经新流程复导全链路 @critical @done(26-09-27 15:22)（6b42f99；14 图搬入 public/img/lecture-notes/images/；正文与源逐字相等（仅尾换行归一）；U+FFFD 0；/lecture-notes 200 且 14 图全 width/height + 14 figure；查看器点击可用；vitest 123 绿 + build 6 页绿 + dist 无 dev 路由）
     观察项（本次未纳入，触发即办）:
         ☐ figure 无 title 时不截图注（当前 0 figcaption 属预期：源文档未写 title） @low
