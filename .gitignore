@@ -23,3 +23,5 @@ Thumbs.db
 
 # jetbrains setting folder
 .idea/
+.crush-tether/profile
+crush.json
