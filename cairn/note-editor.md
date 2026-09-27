@@ -38,6 +38,7 @@ notes 模式的源语法（`:note-m[词句]{#id}` 行内锚 / `:::note-m` 容器
 - **响应式分支的度量对象**：`matchMedia` 与 `@media` 都测浏览器视口；嵌在面板里的组件要自适应，判据必须是容器（ResizeObserver / @container）。症状识别法：缩放浏览器后面板内控件错位、形态不随面板宽切换。
 - **「注释声称的 CSS」要实证**：M4 注释写「宽屏 CSS 隐藏 .note-preview」，实际规则从未存在——桌面边注正文前拼重复引用词存活九个里程碑才被 M9.1 双态实测抓出。可见性断言别只看 DOM 存在，要看 computed display + 双断点实测。
 - **Vite 对注入路由的样式模块缓存陈旧**：改 `.astro` 文件后 HTML 更新但 `<style>` 模块仍旧（watch 触发、不失效）——症状 = HTML 新 CSS 旧；解法 = 重启 dev server。排障抓手：curl 页面 grep 样式本体 + `getComputedStyle` 验证令牌落值。
+- **sticky 钉位上限被钳在父级 content box**：尾部滚动余量（`padding-bottom: 40vh`）挂在滚动容器 `#ed-main` 自身时，content box 底缘（即 sticky bottom 的钉位上限）被抬离面板可见底 40vh——工具栏滚到底悬停编辑区正中、贴不到底。余量须挂在钉底元素**之前**的兄弟（`#ed-blocks`），content box 底缘才会延展过其自然流位置。症状识别：sticky bottom 元素滚到底停在中途，与面板底恒差一个 padding 值。
 - **Astro dev 的 content 变更触发整页刷新**：编辑器未保存态在内存，PUT 落盘/其它内容文件变化都可能引发刷新丢编辑态——脏态 confirm 只防切换不防刷新；接受为 dev 工具特性（及时 Ctrl+S）。
 - 视觉模型复核抓出两个 DOM 断言看不见的问题（静态乱码 + 边注裁剪）——自动化断言之外截图复核值得保留。
 

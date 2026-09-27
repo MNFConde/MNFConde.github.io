@@ -4,6 +4,8 @@
 
 ## 2026-09-27
 
+- **M9.1 追修：工具栏钉底悬停编辑区正中（用户复核三报触发）**：澄清首报「控件漂移正中」实指工具栏——当时按预览响应式修偏了半边，非修改未生效。根因 = sticky 钉位上限被钳在父级 content box，40vh 尾部滚动余量挂在滚动容器 #ed-main 上，content box 底缘（钉位上限）被抬离面板可见底 40vh。修：余量挪 #ed-blocks（钉底元素之前的兄弟），钉底全程贴合面板底边、余量不变。IAB 实测 27 块文档顶/中/底三态与面板底间距恒 13px（5ce45c6）。→ plan.todo M9.1 / note-editor.md
+
 - **M9.1 预览容器自适应 + 布局三态（用户复核触发）**：根因 = 响应式判据度量视口而非面板——引擎 matchMedia 与 CSS @media 都只看浏览器窗口。修：notes-engine 增**容器模式**（{container, scrollEl} 可选参：ResizeObserver 按面板宽激活 + 滚动坐标系换源；无参调用零变化护生产）+ **容器查询**复刻 M4 窄屏形态（@container 1100；视口/容器查询结构性不冲突：面板宽 ≤ 视口宽）+ --main-width:min(42rem,100%) 钳正文列（居中漂移随之消失，撤固定缩小令牌）。布局三态 side/stack/stack-rev（localStorage 记忆），上下模式面板全宽自动切桌面三栏。**顺修存量 bug**：.note-preview 桌面无隐藏规则（M4 起）——桌面边注正文前一直拼重复引用词，补基线 display:none。IAB 实证双形态切换/RO 逆切换/模态/生产页回归；vitest 90 绿 + build 5 页不变。→ plan.todo M9.1 / note-editor.md
 
 - **M9 辅助注解编辑器全量落地（切片1-4）**：dev-only 双件——`/dev/editor` 由 integration 仅 dev 时 injectRoute（页面放 pages 外，build 零新增路由/端点）+ `/api/dev` 四端点（列表/读/写/渲染）。**块模型互斥**（每块单 type 字段，Alt+1..5 切换、同键回段落）；**划选建锚** import segment.js findQuote 即时歧义校验（与构建同一份匹配代码，选区经 inlineToText 对齐检索空间）；**实时预览**走 md-pipeline.js 共享插件数组 + createMarkdownProcessor（Astro 同款处理器，零新依赖）+ 真 notes-engine（补 dispose 卸载钩子）；**导入落 notes**（slug 清洗去重 + frontmatter 补齐）+ PUT 前 gate 重放不落盘回显。notes-demo 字节级往返零 diff；vitest 90 绿（81+9）+ IAB/curl 全闭环实证（快捷键三态、#n10 划选建锚、交叠段 n4 n5、保存落盘核对）。坑两条：Vite 注入路由样式缓存陈旧须重启 dev、dev content 刷新丢内存编辑态。→ plan.todo M9 / note-editor.md
