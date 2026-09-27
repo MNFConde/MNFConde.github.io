@@ -283,3 +283,39 @@ M8.1 查看器拖拽修复（26-09-27 用户真机复核触发）:
         ✔ global.css：-webkit-user-drag:none 两处（Safari 不认属性侧的补刀） @high @done(26-09-27 01:05)
         ✔ 回归：vitest 81 绿 + build 绿 + IAB 断言（draggable 属性落位 / dragstart defaultPrevented / 拖拽路径钳制无回归：+400 纵向精确钳 352.8 上限） @critical @done(26-09-27 01:06)（真机手感复核归用户，通过后推送）
         ✔ 教训沉淀：image-viewing.md 教训节新增 DnD 劫持条 + 分叉律总纲；LOG 置顶条目 @high @done(26-09-27 01:08)
+
+M9 辅助注解编辑器（note 模式 UI 注解写作台；dev-only 不进产物）:
+    依据：26-09-27 三轮讨论定案（形态 = UI 对 note 原文做注解的辅助编辑器；全格式交互 + 选中快捷键互斥切换 + 实时预览 + 直访/导入 notes 文档）+ 同日四项拍板（块结构+行内源码 / frontmatter 表单化 / 图片仅路径引用 / 立项 M9）
+    验收：dev server 内完成「列/开/改/存 notes 文档 + 导入外部 md 落 notes」全闭环；快捷键切换块格式互斥不嵌套（按 1 未取消选区再按 2 = 直接切到 2）；划选建边注即时 findQuote 歧义校验；实时预览与构建同源管线 + 真 notes-engine（碰撞/分流真实生效）；生产 build 零新增页面/端点；vitest 81+新增全绿
+    既定约束（26-09-27 讨论定案）:
+        形态 = dev-only 双件：编辑页 src/pages/dev/editor.astro 以 import.meta.env.DEV 守门（build 出空壳）+ astro.config 挂小 integration 仅 command==='dev' 时注册中间件——生产产物零新增，GitHub Pages 不受影响
+        编辑器模型 = 块结构 + 行内源码（用户定案）：文档 = frontmatter + blocks[]，每块单一 type 字段（p/h2/essay/note/image/code）——格式互斥由数据模型结构性保证（切格式 = 改 type，1 套 2 不可能发生）；行内内容（含 :note-m 行内锚）保留 markdown 源文本编辑，不自研富文本引擎（全 WYSIWYG 路线否决：选区/格式序列化/撤销栈工作量数倍）
+        API = dev 中间件四端点：GET /api/dev/notes（列 src/content/notes/*.md）/ GET|PUT /api/dev/notes/:slug（读写文件，slug 白名单 [a-z0-9-] 防路径穿越）/ POST /api/dev/render（渲染 md → HTML）
+        管线单一事实源 = 抽 src/lib/md-pipeline.js（remark/rehype 插件列表共享模块），astro.config 与 dev 中间件同 import——杜绝编辑器与构建双管线漂移；sharp 尺寸回填只能 node 侧跑 = 预览走服务端渲染（否决客户端 unified）的根因
+        快捷键 = 光标在块内按数字键切换块格式（同键再按回段落，toggle 语义）；划选文字 + 锚点键 → 捕获规范化引用串建 :::note-m 边注（编辑器直接 import segment.js 纯函数 findQuote 当场查歧义——与构建同一份匹配代码，多匹配提示扩大选区）；note id 自动递增、重开文档保持既有 id
+        实时预览 = 右侧面板防抖 ~150ms → POST render → 注入复刻 NoteLayout DOM 的容器 + 引 theme.css/global.css + init 真 notes-engine.js（碰撞布局/分流回升真实生效，预览即最终效果）
+        frontmatter = 表单化编辑（用户定案）：侧栏表单（title/description/date/tags/series/seriesOrder）保存一并序列化；新建/导入补齐缺省字段
+        图片 = 仅路径引用（用户定案）：MVP 支持块内写图片路径（走 M8 排版管线），本地上传端点后补观察项
+        导入 = 粘贴 md 文本或选文件 → 解析 frontmatter → 补 title/date/slug（slug 冲突加后缀）→ PUT 为新文档入 src/content/notes/
+        保存校验 = PUT 前中间件跑 content-gate 同款管线重放（重放逻辑抽共享），失配报错回显 UI 不落盘——承 M2/M5 strict 哲学（file.fail 被 content layer 吞，gate 是真正执行点）
+        测试 = 序列化/反解（md ⇄ blocks）+ frontmatter 合并纯函数 vitest；编辑器 DOM 层浏览器实证（承 toc-engine 先例）
+    切片1 共享管线 + dev API + 块模型:
+        ☐ md-pipeline.js 抽离（astro.config 插件列表共享化）+ content-gate 重放逻辑共享 @critical
+        ☐ dev integration：四端点中间件（dev-only 注册 + slug 白名单 + PUT 前 gate 重放校验） @critical
+        ☐ 块模型序列化器/反解器（blocks ⇄ md，覆盖 note 引用串/essay/标题/代码/图片路径块）+ vitest @critical
+        ☐ 编辑页骨架：src/pages/dev/editor.astro（DEV 守门）+ 文档列表侧栏（GET 列表 → 点开反解入编辑） @high
+    切片2 块格式快捷键 + 划选建锚:
+        ☐ 块格式切换：数字键互斥切 type（同键 toggle 回段落）+ 工具栏等价按钮 @critical
+        ☐ 划选建边注：规范化引用串捕获 + findQuote 歧义即时校验 + 侧栏批注输入 + id 递增管理 @critical
+        ☐ frontmatter 表单：字段编辑 + 保存序列化 + 新建/导入缺省补齐 @high
+    切片3 实时预览:
+        ☐ render 端点接线：防抖 ~150ms POST → HTML 注入预览容器 @critical
+        ☐ 预览容器复刻 NoteLayout DOM 结构 + init 真 notes-engine（碰撞布局真实生效） @critical
+        ☐ 预览↔编辑锚点联动（点击预览边注定位编辑块） @low
+    切片4 导入 + 收尾:
+        ☐ 导入：粘贴/选文件 md → frontmatter 解析补齐 → slug 去重 → PUT 入 notes @high
+        ☐ 浏览器实证全闭环（列/开/改/存/导入/预览/快捷键互斥/歧义校验）+ vitest 全绿 + 生产 build 断言零新增端点 @critical
+        ☐ 文档收尾：plan 勾选 + cairn 主题笔记（note-editor.md）+ LOG + AGENTS 状态行 @high
+    观察项（定案未纳入，触发即办）:
+        ☐ 图片本地上传端点（dev API 写图片文件进仓库并插路径） @low
+        ☐ posts（:::orig 原文对照）编辑支持 @low
