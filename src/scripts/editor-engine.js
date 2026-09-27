@@ -759,6 +759,13 @@ export function initEditor() {
     const type = e.target.closest('button')?.dataset.add;
     if (type) addBlock(type);
   });
+  // 帮助浮层（M9.6）：原生 dialog，Esc 自动关；点遮罩（target 即 dialog）或关闭钮亦关
+  els.help = $('ed-help');
+  els.helpDialog = $('ed-help-dialog');
+  els.help.addEventListener('click', () => els.helpDialog.showModal());
+  els.helpDialog.addEventListener('click', (e) => {
+    if (e.target === els.helpDialog || e.target.id === 'ed-help-close') els.helpDialog.close();
+  });
   els.slug.addEventListener('input', () => touch());
   document.addEventListener('keydown', (e) => {
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {

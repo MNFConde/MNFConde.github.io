@@ -49,12 +49,31 @@ import '../styles/global.css';
       <button type="button" data-add="note">+ 边注</button>
       <button type="button" data-add="code">+ 代码</button>
       <button type="button" data-add="image">+ 图片</button>
-      <span class="ed-cheatsheet">Alt+1..5 切块格式（同键回段落，互斥）· 段内划选 + Alt+N 建边注</span>
+      <span class="ed-cheatsheet">Alt+1..5 切块格式（同键回段落，互斥）· 段内划选 + Alt+N 建边注 <button type="button" id="ed-help">更多…</button></span>
     </div>
     </main>
     <section id="ed-preview"><div id="ed-preview-mount"></div></section>
   </div>
-</div>
+  </div>
+  <dialog id="ed-help-dialog">
+    <div class="ed-help-body">
+      <h2>操作提示</h2>
+      <h3>块与控件</h3>
+      <ul>
+        <li>块模型互斥：每块单一类型。Alt+1..5 直切格式（1 段落 / 2 标题 H2 / 3 标题 H3 / 4 随笔 / 5 代码），同键再按回段落；边注、图片用工具栏 + 按钮。</li>
+        <li>新增块落点：插到「最近获得焦点的块」之后；没点过任何块（或刚删过块）则追加到文末——先点目标块内任意输入框，再点 + 按钮即可指定插入位置；↑ ↓ 调序、删 删除。</li>
+        <li>Ctrl+S 保存：PUT 前服务端跑与构建同源的校验重放（引用串失配、相对图片引用等），失配回显问题不落盘。</li>
+        <li>其它：布局按钮循环三态（并排 / 上下 / 预览上）；Ctrl+B 侧栏收展；「联动」= 编辑↔预览滚动同步（锚点插值）；边注块左侧竖线 = 树形导轨——连接锚段落与本组边注，标红边框 = 锚定失配。</li>
+      </ul>
+      <h3>两种边注形态</h3>
+      <ul>
+        <li><strong>行内锚</strong> <code>:note-m[词句]&#123;#id&#125;</code>（边注块引用串留空）：按 id 直配、永不失配。适合要点亮具体词句（点击召唤）、同一句多个相邻锚点、不想担失配风险。代价：正文混入自定义语法，锚区不可重叠。</li>
+        <li><strong>引用式</strong>（边注块「引用串」填正文原句）：构建时在正文段落里检索定位。适合保持正文纯 markdown、事后补注、多条边注锚定重叠区域。代价：改正文要同步引用串，失配/歧义构建即红（编辑器中标红边框）。</li>
+        <li>快捷建注：段落里划选一段文字 → Alt+N——自动生成引用串并即时校验唯一命中（多命中提示扩大选区），边注块插在该段之后，补上边注正文即可。</li>
+      </ul>
+    </div>
+    <div class="ed-help-foot"><button type="button" id="ed-help-close">关闭（Esc）</button></div>
+  </dialog>
   </body>
 </html>
 
@@ -140,6 +159,18 @@ import '../styles/global.css';
   #ed-toolbar { position: sticky; bottom: 0; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 8px 0; background: linear-gradient(transparent, #fff 40%); }
   #ed-toolbar button { white-space: nowrap; }
   .ed-cheatsheet { flex-basis: 100%; white-space: nowrap; font-size: 12px; color: #888; margin-left: 8px; }
+  #ed-help { font-size: 12px; padding: 0; margin-left: 4px; border: none; background: none; color: #1d4ed8; text-decoration: underline; cursor: pointer; }
+  /* 帮助浮层（M9.6）：原生 dialog（Esc 自动关），点遮罩/关闭钮亦关；
+     flex 列布局 + 关闭钮固定页脚——内容超高时只滚正文区，按钮不被滚出视口 */
+  #ed-help-dialog { border: 1px solid #ccc; border-radius: 8px; padding: 0; width: min(36rem, calc(100% - 2rem)); display: flex; flex-direction: column; max-height: 80vh; }
+  #ed-help-dialog::backdrop { background: rgba(0, 0, 0, .35); }
+  .ed-help-body { padding: 14px 18px 16px; overflow: auto; min-height: 0; flex: 1; }
+  .ed-help-body h2 { margin: 0 0 6px; font-size: 16px; }
+  .ed-help-body h3 { margin: 12px 0 4px; font-size: 13px; color: #1d4ed8; }
+  .ed-help-body ul { margin: 0; padding-left: 1.2em; }
+  .ed-help-body li { margin: 4px 0; }
+  .ed-help-body code { background: #eee; border-radius: 3px; padding: 0 4px; font-family: ui-monospace, Consolas, monospace; font-size: 12px; }
+  .ed-help-foot { padding: 10px 18px 14px; border-top: 1px solid #eee; }
   #ed-preview { flex: 1.2; min-width: 320px; min-height: 240px; overflow: auto; padding: 16px; }
   /* 预览面板 = 响应式判据的度量对象（M9.1）：容器查询驱动窄屏形态，正文列钳在面板宽内。
      生产行为不受影响——全站无其它 container-type 祖先，@container 仅在此命中 */
