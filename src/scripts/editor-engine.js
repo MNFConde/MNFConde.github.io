@@ -42,6 +42,14 @@ function applyLayout(mode) {
   } catch {}
 }
 
+// 记忆上次打开的文档（M9.4）：content 变更触发 dev 整页刷新会抹掉内存态（见
+// note-editor.md 教训），启动时凭此键自动重开；滚动位置不存，回文档开头
+function rememberSlug(slug) {
+  try {
+    localStorage.setItem('ed-last-slug', slug);
+  } catch {}
+}
+
 // 侧栏收展（M9.2）：open 220px / collapsed 32px 窄轨仅留切换钮；localStorage 记忆承 ed-layout 模式
 function applySidebar(open) {
   document.getElementById('editor-app').dataset.sidebar = open ? 'open' : 'collapsed';
@@ -153,12 +161,14 @@ async function loadDocs() {
     li.addEventListener('click', () => openDoc(d.slug));
     els.docs.appendChild(li);
   }
+  return docs;
 }
 
 async function openDoc(slug) {
   if (state.dirty && !confirm('有未保存改动，放弃并打开其它文档？')) return;
   const { md } = await api(`/notes/${slug}`);
   state.slug = slug;
+  rememberSlug(slug);
   state.doc = parseDoc(md);
   state.dirty = false;
   state.focusIndex = -1;
@@ -467,6 +477,7 @@ async function save() {
   try {
     await api(`/notes/${slug}`, { method: 'PUT', body: JSON.stringify({ md: serializeDoc(state.doc) }) });
     state.slug = slug;
+    rememberSlug(slug);
     state.dirty = false;
     status();
     hint();
@@ -549,6 +560,7 @@ async function importFromText(mdText, fallbackName, assetFiles) {
 
   const finalDoc = parseDoc(normalizedMd);
   state.slug = slug;
+  rememberSlug(slug);
   state.doc = finalDoc;
   ensureFm(finalDoc, slug);
   state.dirty = true;
@@ -670,5 +682,11 @@ export function initEditor() {
       switchBlockType(i, target);
     }
   });
-  loadDocs().catch((error) => hint(`文档列表加载失败：${error.message}`));
+  // 启动恢复（M9.4）：上次打开的文档还在列表里就自动重开；已不存在则静默跳过
+  loadDocs()
+    .then((docs) => {
+      const saved = localStorage.getItem('ed-last-slug');
+      if (saved && docs.some((d) => d.slug === saved)) openDoc(saved);
+    })
+    .catch((error) => hint(`文档列表加载失败：${error.message}`));
 }
