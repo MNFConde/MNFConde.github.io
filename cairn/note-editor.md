@@ -33,12 +33,15 @@ notes 模式的源语法（`:note-m[词句]{#id}` 行内锚 / `:::note-m` 容器
 - **软换行渲染换行但保留匹配空格（M9.4）**：自研 `remarkSoftBreak`（管线末位、remarkOrig 之后）把段内软换行拆为 `文本(尾空格)+break+文本`——`<br>` 前的空格 HTML 折叠视觉无差，却让 `flattenBlock`（空白→单空格、br 零字符）的边注检索空间与引用串保持互match。原生 hard break（remark 已剥行尾空白）同补空格，两种换行写法语义一致。**否决两条路**：remark-breaks 依赖（无空格拆分 = 跨折行引用永久失配）；改 flattenBlock 给 br 合成空格（segment 游标机制建立在每字符↔文本节点映射上，风险大 diff 大）。
 - **文档记忆只存 slug（M9.4）**：content 数据仓库重写即广播 `full-reload path:*`（Astro 源码 `vite-plugin-content-virtual-mod.js` 的 `invalidateDataStore`），保存落盘本身触发——`ed-last-slug` 三入口写入（打开/保存/导入）+ 启动时列表内存在才重开；滚动不存：内层容器滚动浏览器不代管，预览重渲染又有钳位瑕疵，回文档开头为定案取舍。
 - **滚动联动 = 锚点插值 + 回声锁（M9.5）**：编辑侧 `.eb` 逐块、预览侧逐个消费渲染顶层元素（**note 块跳过 aside、改取正文锚元素**——选择器与 notes-engine 召唤同源 `.note-anchor[id]/[data-notes~]`；aside 视觉位置是碰撞分流产物，会被挤出面板，不可作锚点），区间线性插值走 `scroll-sync.js` 纯函数（首尾伪锚点 `(0,0)/(max,max)` 比例封边、src 重复丢弃/dst 回退钳位的单调化）；回声锁 = 程序滚动的容器 120ms 窗口内忽略自身 scroll 事件（双向同步防回环的标准解）；锚点表三时机重建——预览成功渲染后、双容器 ResizeObserver（三态布局/侧栏收展使换行高度全变）、在途/失败置 null 退化纯比例；开关默认开，`localStorage('ed-sync')` 记忆。否决纯比例映射：两侧高度分布不成比例（块头/表单 vs 浮动边注/图片），中后段漂移明显。
+- **树形导轨 = border 几何 + noteRails 锚归属（M9.6）**：边注从属可视化否决字符树（├─└─）——比例字体 system-ui 下 Unicode 制表符错位，更致命的是字形只占一行文本高、**跨不了整块卡片**（竖线须贯穿几十上百像素的块高）；CSS border 竖干（`top:-10px` 上跨 `#ed-blocks` 的 10px gap）+ 肘线（17px 块头中线）纯几何，与字体/DPI 无关。末注竖干 height=27px（肘 17+gap 10）——曾 17px 致干梢与肘线间 10px 断口。锚归属纯函数：行内锚扫 p/essay 按 id 直配、引用式复用 countQuoteHits 唯一命中；**只画紧跟锚段的连续边注组**（组前块即锚段，组内任一注锚到它），锚到别处/挪离仅缩进——连接线必须表达真实从属。该映射同时是滚动联动锚点表与「点预览边注定位编辑块」观察项的地基。引擎只改 data 属性不重建 DOM（保焦点保滚动），文本输入 300ms 防抖重算。
+- **帮助浮层（M9.6）**：速查条「更多…」→ 原生 `<dialog>`（Esc 为原生 cancel 行为；遮罩路径 = click target 落在 dialog 本身；关闭钮显式关）。**关闭钮放固定页脚而非滚动区内**——首版沉在滚动内容底部不可见，IAB 实证抓出；dialog flex 列 + body `flex:1; min-height:0; overflow:auto` 是内容区可滚、页脚钉底的正解。
 
 ## 经验
 
 - Astro dev 里给静态注入路由写 API 的正解 = integration 双钩子：`astro:config:setup`（injectRoute）+ `astro:server:setup`（`server.middlewares.use(prefix, fn)`）；connect 中间件带前缀使用时 `req.url` 已剥前缀。
 - 预览面板装三栏布局：`data-notes-float` 绝对定位的边注轨按令牌算宽（main+gutter+margin），面板窄于该宽即被裁剪——解法 = 在面板容器上局部重定义三个令牌（`--main-width: min(24rem,55%)` 等），结构零改动。
 - dev-only 页也要完整 HTML 壳：省略 `<meta charset>` 时静态模板中文按 windows-1252 解码成乱码（JS 注入文本反而不乱——bundled module 字符串走 UTF-16）。
+- `.astro` 模板里写字面花括号必须实体转义（M9.6）：帮助文案里的 `:note-m[词句]{#id}` 使编译期 `Expected in but found }`——模板层把 `{...}` 当 JS 表达式解析；写 `&#123;#id&#125;` 即可。症状识别：dev 日志 CompilerError 且 build 同炸，行号指向纯文案行。
 
 ## 教训
 
