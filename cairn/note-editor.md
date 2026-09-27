@@ -35,6 +35,10 @@ notes 模式的源语法（`:note-m[词句]{#id}` 行内锚 / `:::note-m` 容器
 - **滚动联动 = 锚点插值 + 回声锁（M9.5）**：编辑侧 `.eb` 逐块、预览侧逐个消费渲染顶层元素（**note 块跳过 aside、改取正文锚元素**——选择器与 notes-engine 召唤同源 `.note-anchor[id]/[data-notes~]`；aside 视觉位置是碰撞分流产物，会被挤出面板，不可作锚点），区间线性插值走 `scroll-sync.js` 纯函数（首尾伪锚点 `(0,0)/(max,max)` 比例封边、src 重复丢弃/dst 回退钳位的单调化）；回声锁 = 程序滚动的容器 120ms 窗口内忽略自身 scroll 事件（双向同步防回环的标准解）；锚点表三时机重建——预览成功渲染后、双容器 ResizeObserver（三态布局/侧栏收展使换行高度全变）、在途/失败置 null 退化纯比例；开关默认开，`localStorage('ed-sync')` 记忆。否决纯比例映射：两侧高度分布不成比例（块头/表单 vs 浮动边注/图片），中后段漂移明显。
 - **树形导轨 = border 几何 + noteRails 锚归属（M9.6）**：边注从属可视化否决字符树（├─└─）——比例字体 system-ui 下 Unicode 制表符错位，更致命的是字形只占一行文本高、**跨不了整块卡片**（竖线须贯穿几十上百像素的块高）；CSS border 竖干（`top:-10px` 上跨 `#ed-blocks` 的 10px gap）+ 肘线（17px 块头中线）纯几何，与字体/DPI 无关。末注竖干 height=27px（肘 17+gap 10）——曾 17px 致干梢与肘线间 10px 断口。锚归属纯函数：行内锚扫 p/essay 按 id 直配、引用式复用 countQuoteHits 唯一命中；**只画紧跟锚段的连续边注组**（组前块即锚段，组内任一注锚到它），锚到别处/挪离仅缩进——连接线必须表达真实从属。该映射同时是滚动联动锚点表与「点预览边注定位编辑块」观察项的地基。引擎只改 data 属性不重建 DOM（保焦点保滚动），文本输入 300ms 防抖重算。
 - **帮助浮层（M9.6）**：速查条「更多…」→ 原生 `<dialog>`（Esc 为原生 cancel 行为；遮罩路径 = click target 落在 dialog 本身；关闭钮显式关）。**关闭钮放固定页脚而非滚动区内**——首版沉在滚动内容底部不可见，IAB 实证抓出；dialog flex 列 + body `flex:1; min-height:0; overflow:auto` 是内容区可滚、页脚钉底的正解。
+- **反向联动必须交换锚点轴（M9.5 追修 26-09-28）**：锚点表 `{src: 编辑侧, dst: 预览侧}` 语义固定，预览作源时原样喂 `mapScroll` = 拿编辑坐标当预览输入断点、把预览坐标写回编辑 scrollTop——两列坐标都单调，症状是「方向感对但处处错位」而非乱跳，隐蔽。`scroll-sync.js` 增 `invertAnchors` 纯函数交换轴，两方向共用同一份测量、互为逆映射。
+- **remarkDirective 误伤守卫（M9.5 追修带出）**：指令名允许纯数字——正文 `9:11`、`arXiv:1706`（含链接文字内）被解析为行内指令：丢字 + 空 div 截断段落 + 顶层注入空元素（连带破坏滚动联动配对）。守卫插件 `directive-guard.js`：语义指令消费时一律置 `data.hName`（note-m/essay/orig 既有约定），无 hName 的指令（text/leaf/container）还原 `:名`/`::名`/`:::名` 字面文本；插在 remarkOrig 后、remarkSoftBreak 前，mdRemarkPlugins 与 gate 重放同序。
+- **列表块的锚点配对（M9.5 追修带出）**：空行分隔的列表项在编辑器是 N 个块、CommonMark 渲染仍是 1 个 ul——1:1 走查自首个松散列表处永久错位（309 块文档 138 处失配、kids 提前耗尽）。配对走查遇「列表块 ↔ UL/OL」时逐 `<li>` 锚定、不消费 kid，连续列表块串结束才前进一位；紧凑写法（一个块含多行 item）锚首项即可。
+- **渲染门槛 content-render.test.js（M9.5 追修固化）**：content-gate 管源约束、渲染门槛管产物形状——`renderMarkdown` 同源渲染全部 posts+notes，五断言：渲染不抛 / 零残留星号定界符（双星、双下划线、单星全查）/ 零成对下划线强调（词内单 `_` 不查——URL 合法字符且 CommonMark 本不词内强调）/ 零空元素 / 零语义指令字面残留（`:note-m` 等在正文 = 未被消费——directive-guard 救渲染不辨意图，写错指令名在此现形）。检查空间 = 剥 code/pre 与全部 tag 后的纯文本（href 属性不进）。首跑即抓出 notes-demo 裸写语法提及——真阳性验证。
 
 ## 经验
 
@@ -54,6 +58,9 @@ notes 模式的源语法（`:note-m[词句]{#id}` 行内锚 / `:::note-m` 容器
 - **sticky 钉位上限被钳在父级 content box**：尾部滚动余量（`padding-bottom: 40vh`）挂在滚动容器 `#ed-main` 自身时，content box 底缘（即 sticky bottom 的钉位上限）被抬离面板可见底 40vh——工具栏滚到底悬停编辑区正中、贴不到底。余量须挂在钉底元素**之前**的兄弟（`#ed-blocks`），content box 底缘才会延展过其自然流位置。症状识别：sticky bottom 元素滚到底停在中途，与面板底恒差一个 padding 值。
 - **Astro dev 的 content 变更触发整页刷新**：编辑器未保存态在内存，PUT 落盘/其它内容文件变化都可能引发刷新丢编辑态——脏态 confirm 只防切换不防刷新；接受为 dev 工具特性（及时 Ctrl+S）。26-09-27 机制钉到源码级：content 数据仓库重写触发 `invalidateDataStore` 广播 `{type:'full-reload', path:'*'}`（Astro `vite-plugin-content-virtual-mod.js`），与当前页面是否读 collection 无关；M9.4 起 `ed-last-slug` 记忆刷新自动重开文档（滚动回开头，未保存改动仍丢）。
 - 视觉模型复核抓出两个 DOM 断言看不见的问题（静态乱码 + 边注裁剪）——自动化断言之外截图复核值得保留。
+- **管线级缺陷会以「别处症状」面目出现（26-09-28）**：remarkDirective 吞 `9:11` 这类丢字+空元素的缺陷，最先暴露的是「滚动联动反向偏差大」——空元素混进预览顶层使锚点配对错位。排障路径：同源渲染离线重放（renderMarkdown）对 HTML 找残留字面标记/空元素，再分层消融插件定位归属层（本次 remark 阶段就已坏，rehype 全排除）。
+- **dev 中间件的管线代码缓存陈旧（26-09-28）**：改 md-pipeline 插件后 `/api/dev/render` 仍执行旧代码——症状特征：**内容级修复生效（每次渲染重读文件）、管线级修复不生效（模块缓存）**；重启 dev 即愈。与「Vite 注入路由样式缓存陈旧」同族，排障先判别哪层陈旧再动手。
+- **vitest 下 `visit(tree, [类型数组], cb)` 出现同节点双次回调（26-09-28 观察，机制未深究；node 直跑同代码不复现）**——测试内树遍历用朴素递归收集，行为与环境无关。
 
 ## 开放问题
 

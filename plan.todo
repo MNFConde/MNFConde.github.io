@@ -398,6 +398,13 @@ M9.5 编辑↔预览滚动联动（26-09-27 用户需求触发）:
         ✔ src/lib/scroll-sync.js mapScroll 纯函数（区间线性插值 + 伪锚点封边 + 单调化：src 重复丢弃/dst 回退越界钳位）+ 单测 8 例 @critical @done(26-09-27 16:52)（3617f27）
         ✔ 引擎接线：双侧 scroll 监听（passive）+ 回声锁（程序滚动容器 120ms 窗口忽略自身事件，防双向回环）+ 锚点表三时机（renderPreview 成功后重建 / 双容器 ResizeObserver 重建 / 在途失败置 null 退化纯比例）+ 联动开关按钮（默认开，localStorage('ed-sync') 承三态记忆模式） @critical @done(26-09-27 16:52)（3617f27）
         ✔ 浏览器实证：lecture-notes 309 块三档滚动对齐 ±1 块；反向跟随；开关后双向冻结；notes-demo 9 边注滚块落正文段（非 aside）且锚元素近预览视口顶；input 触发重建后联动恢复；重载还原干净态（slug 恢复 + 默认开） @high @done(26-09-27 16:54)（vitest 140 绿 + build 6 页绿 + dist 无 dev 路由）
+    追修（26-09-28 用户报障「反向偏差很多」触发，三层缺陷）:
+        ✔ 预览→编辑方向锚点轴交换：drive() 反方向原样喂锚点表（编辑坐标当预览输入断点/预览坐标写回编辑 scrollTop，单调仍跟滚但处处错位）——scroll-sync 增 invertAnchors 纯函数（+3 单测），engine 预览作源时交换轴 @critical @done(26-09-28 00:40)（e537ec0）
+        ✔ remarkDirective 误伤守卫：行内 `:数字` 被当指令解析（lecture-notes 全文 11 处——`9:11`/`arXiv:编号` 吞字产空 div，截段 + 顶层空元素破坏联动配对）；directive-guard 插件把未消费（无 data.hName）指令还原字面文本，mdRemarkPlugins 与 gate 重放同序接入（+3 单测） @critical @done(26-09-28 00:40)（ae2e0b2）
+        ✔ 松散列表配对：空行分隔列表项 = N 块 ↔ CommonMark 渲染 1 个 ul，1:1 走查自首个列表处永久错位（138 处失配）——rebuildSyncAnchors 列表块逐 li 锚定、串结束才消费 kid @critical @done(26-09-28 00:40)（e537ec0）
+        ✔ lecture-notes 内容修复（未提交，随用户编辑走）：8 处「粗体以全角标点收尾+紧跟汉字」侧性失效，闭合 ** 后补半角空格（CommonMark 标准行为，文档 L357 已有同款正确先例） @high @done(26-09-28 00:40)
+        ✔ 渲染门槛固化 src/content-render.test.js（26-09-28 用户拍板「都管上」）：renderMarkdown 同源渲染全部 posts+notes，五断言——渲染不抛 / 零残留星号定界符（双星、双下划线、单星全查）/ 零成对下划线强调（词内单 _ 不查）/ 零空元素 / 零语义指令字面残留（守卫还原物 = 疑似写错指令名）；首跑即抓出 notes-demo 裸写 :::essay/:::note-m 语法提及，改代码记号 @critical @done(26-09-28 00:38)（bff3038）
+        复核：vitest 157 绿（152+5）+ build 6 页 + IAB 复刻走查 309 块 0 失配 + 四锚点双向误差 0/±1px（修前反向数千 px）
 
 M9.6 编辑器树形导轨 + 帮助浮层（26-09-27 用户需求触发）:
     方案定案（26-09-27 两轮只读评估后用户拍板 border 几何方案）:
