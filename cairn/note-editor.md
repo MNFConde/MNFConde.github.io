@@ -26,6 +26,7 @@ notes 模式的源语法（`:note-m[词句]{#id}` 行内锚 / `:::note-m` 容器
 - **往返保真**：`editor-blocks.js` 解析策略 = 未识别行（列表/引用/裸 html）原样并入 p 块文本，notes-demo.md 字节级往返零 diff（vitest 断言）；frontmatter 以 raw 值原序序列化，表单编辑才改写。
 - **预览容器自适应（M9.1 定案）**：响应式判据的度量对象必须是**容器**而非视口——引擎增可选参 `{ container, scrollEl }`（ResizeObserver 按面板宽激活，断点 1100 与容器查询配对；scrollY/docY 换源到面板滚动），无参调用保持视口 matchMedia、生产行为零变化；CSS 侧 `container-type: inline-size` + `@container (max-width: 1100px)` 复刻 M4 窄屏块。视口 @media 与容器 @container 结构性不冲突：面板宽 ≤ 视口宽，同窄时规则一致、异宽时只有一套生效。正文列 `--main-width: min(42rem, 100%)` 钳面板宽（固定缩小令牌路线废弃——那只是几何补丁，不构成自适应）。
 - **布局三态（M9.1）**：side / stack / stack-rev（`#ed-content` 包裹 + data-layout 换向 + order 反序，localStorage 记忆）；上下模式面板全宽 → 容器查询自动切桌面三栏——布局切换天然联动缩放模式切换。
+- **侧栏收展 = 窄轨而非全隐（M9.2）**：收起 32px 仅留切换钮（«/» 随态换向），把手常驻随时点回；宽度动画防折行 = `#ed-side-body` 钉死 `min-width: 220px` + 父级 `overflow-x: hidden` 裁切（内容整体滑出而非重排），收起态 `visibility: hidden` 摘焦点链；Ctrl+B + `localStorage('ed-sidebar')`（承 ed-layout 模式）。侧栏宽变化经 flex 推挤 `#ed-content`，M9.1 容器查询/ResizeObserver 自动跟形态——收展联动响应式是容器自适应路线的免费收益。
 
 ## 经验
 

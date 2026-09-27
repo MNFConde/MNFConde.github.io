@@ -4,6 +4,8 @@
 
 ## 2026-09-27
 
+- **M9.2 侧栏收展（用户需求触发）**：文档侧栏收成 32px 窄轨（仅切换钮 «/»）而非全隐——把手常驻随时点回；#ed-side-body 钉死 min-width + 父级 overflow-x 裁切，动画期内容滑出不折行；Ctrl+B + localStorage('ed-sidebar') 记忆；侧栏宽变化经 flex 推挤预览面板，容器查询自动跟形态（M9.1 免费收益）。IAB 实测收起 237→49px / 刷新还原 / Ctrl+B 双向 / 预览 1363→1551 自动吃满且 note-layout 存活；vitest 90 绿。→ plan.todo M9.2 / note-editor.md
+
 - **M9.1 追修：工具栏钉底悬停编辑区正中（用户复核三报触发）**：澄清首报「控件漂移正中」实指工具栏——当时按预览响应式修偏了半边，非修改未生效。根因 = sticky 钉位上限被钳在父级 content box，40vh 尾部滚动余量挂在滚动容器 #ed-main 上，content box 底缘（钉位上限）被抬离面板可见底 40vh。修：余量挪 #ed-blocks（钉底元素之前的兄弟），钉底全程贴合面板底边、余量不变。IAB 实测 27 块文档顶/中/底三态与面板底间距恒 13px（5ce45c6）。→ plan.todo M9.1 / note-editor.md
 
 - **M9.1 预览容器自适应 + 布局三态（用户复核触发）**：根因 = 响应式判据度量视口而非面板——引擎 matchMedia 与 CSS @media 都只看浏览器窗口。修：notes-engine 增**容器模式**（{container, scrollEl} 可选参：ResizeObserver 按面板宽激活 + 滚动坐标系换源；无参调用零变化护生产）+ **容器查询**复刻 M4 窄屏形态（@container 1100；视口/容器查询结构性不冲突：面板宽 ≤ 视口宽）+ --main-width:min(42rem,100%) 钳正文列（居中漂移随之消失，撤固定缩小令牌）。布局三态 side/stack/stack-rev（localStorage 记忆），上下模式面板全宽自动切桌面三栏。**顺修存量 bug**：.note-preview 桌面无隐藏规则（M4 起）——桌面边注正文前一直拼重复引用词，补基线 display:none。IAB 实证双形态切换/RO 逆切换/模态/生产页回归；vitest 90 绿 + build 5 页不变。→ plan.todo M9.1 / note-editor.md

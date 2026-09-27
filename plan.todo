@@ -334,3 +334,9 @@ M9.1 预览容器自适应 + 布局切换（26-09-27 用户真机复核触发）
         ✔ 回归：生产 /notes-demo/ 桌面形态不受引擎改动影响（无参路径 matchMedia 照旧）+ vitest 90 绿 + build 5 页不变 @critical @done(26-09-27 11:21)
     ✔ M9.1 全量落地 @done(26-09-27 11:25)（99efa47 存量修复 + 83bd73e 主体 + docs；教训入 note-editor.md：响应式判据的度量对象、DOM 断言看不见的可见性 bug 靠双态实测）
     ✔ 追修：工具栏 sticky 钉底被 40vh 余量垫高悬停编辑区正中——余量从 #ed-main 挪 #ed-blocks @done(26-09-27 11:39)（5ce45c6；用户复核三报澄清首报「控件漂移正中」实指工具栏，当时误判为预览响应式；IAB 实测 27 块文档顶/中/底三态与面板底间距恒 13px）
+
+M9.2 侧栏收展（26-09-27 用户需求触发）:
+    依据：文档侧栏常驻 237px 占宽，不需要浏览文档列表时希望收起让编辑/预览吃满
+    定案：收成 32px 窄轨（仅切换钮可见）而非完全隐藏——把手常驻随时点回；#ed-side-body 钉死内容宽（min-width:220px）+ 父级 overflow-x 裁切，宽度动画期间内容滑出而非折行重排；Ctrl+B 快捷键 + localStorage('ed-sidebar') 记忆（承 ed-layout 模式）；侧栏宽变化经 flex 推挤预览面板宽，M9.1 容器查询/ResizeObserver 自动跟形态零额外代码
+    切片1:
+        ✔ 窄轨收展 + 切换钮（«/» 随态换向）+ Ctrl+B + localStorage 记忆 @high @done(26-09-27 11:55)（IAB 实测：点击收起 237→49px 窄轨、body visibility hidden、预览面板 1363→1551 自动吃满且 note-layout 存活；Ctrl+B 双向；收起后刷新还原 collapsed 再展开复位；vitest 90 绿）
