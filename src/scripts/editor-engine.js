@@ -10,7 +10,7 @@
  * 重放校验，失败不落盘仍载入编辑器回显问题。
  * 块互斥由块模型结构性保证（editor-blocks.js）。
  */
-import { countQuoteHits, inlineToText, nextNoteId, normalizeQuote, parseDoc, serializeDoc } from '../lib/editor-blocks.js';
+import { countQuoteHits, inlineToText, nextNoteId, noteRails, normalizeQuote, parseDoc, serializeDoc } from '../lib/editor-blocks.js';
 import { collectRelativeRefs, planAssetImport, rewriteRelativeImages } from '../lib/import-assets.js';
 import { mapScroll } from '../lib/scroll-sync.js';
 import { initNotesEngine } from './notes-engine.js';
@@ -375,6 +375,7 @@ function bindText(el, block, key) {
     block[key] = el.value;
     touch();
     autoResize(el);
+    scheduleRails(); // 锚归属随段落/引用串编辑变化，防抖重算（见 refreshRails）
   });
   el.addEventListener('focus', () => {
     state.focusIndex = state.doc.blocks.indexOf(block);
@@ -446,6 +447,33 @@ function renderBlocks() {
   }
   els.blocks.innerHTML = '';
   state.doc.blocks.forEach((b, i) => els.blocks.appendChild(renderBlock(b, i)));
+  refreshRails();
+}
+
+// —— 树形导轨（M9.6）：noteRails 锚归属 → 块卡片 data 属性，CSS 画 border 连接线 ——
+// 只改属性不重建 DOM（保焦点保滚动）；文本输入经 300ms 防抖重算，结构操作走
+// renderBlocks 顺带刷新。
+
+let railsTimer = 0;
+
+function scheduleRails() {
+  clearTimeout(railsTimer);
+  railsTimer = setTimeout(refreshRails, 300);
+}
+
+function refreshRails() {
+  const rails = noteRails(state.doc?.blocks ?? []);
+  [...els.blocks.children].forEach((el, i) => {
+    const r = rails[i];
+    if (r) {
+      el.dataset.rail = r.rail;
+      if (r.miss) el.dataset.miss = '1';
+      else delete el.dataset.miss;
+    } else {
+      delete el.dataset.rail;
+      delete el.dataset.miss;
+    }
+  });
 }
 
 // —— 结构操作（增删移/类型切换/划选建锚）——

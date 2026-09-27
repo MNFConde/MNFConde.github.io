@@ -110,6 +110,32 @@ import '../styles/global.css';
   .eb textarea.eb-code { font-family: ui-monospace, Consolas, monospace; }
   .eb .eb-note-meta input { color: #555; }
   .eb button { font-size: 12px; padding: 2px 8px; }
+  /* 树形导轨（M9.6）：边注块固定缩进，连接线用 border 几何绘制（与字体无关——
+     Unicode 制表符在比例字体下错位，且字形只占一行文本高、跨不了整块高度）。
+     through = 竖干贯穿本块并上跨 10px gap 接上一块；end = 组内末条，竖干止于肘线；
+     none（挪离锚段/锚到别处）= 仅缩进不画线；失配另挂 data-miss 标红 */
+  .eb[data-type='note'] { position: relative; margin-left: 20px; }
+  .eb[data-rail='through']::before,
+  .eb[data-rail='end']::before {
+    content: '';
+    position: absolute;
+    left: -14px;
+    top: -10px;
+    bottom: 0;
+    border-left: 1px solid #9ca3af;
+  }
+  .eb[data-rail='end']::before { bottom: auto; height: 27px; } /* 17px 肘线 + 10px 上跨 gap，干梢恰好接到肘线 */
+  .eb[data-rail='through']::after,
+  .eb[data-rail='end']::after {
+    content: '';
+    position: absolute;
+    left: -14px;
+    top: 17px;
+    width: 14px;
+    border-top: 1px solid #9ca3af;
+  }
+  .eb[data-miss='1'] { border-color: #fca5a5; }
+  .eb[data-miss='1'] .eb-id { color: #b91c1c; }
   /* 单行 flex 挤压会把按钮/速查都压到内容宽以下而折行：wrap + 速查占满整行（basis:100%）= 按钮独享首行 */
   #ed-toolbar { position: sticky; bottom: 0; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 8px 0; background: linear-gradient(transparent, #fff 40%); }
   #ed-toolbar button { white-space: nowrap; }

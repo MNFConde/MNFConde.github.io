@@ -204,3 +204,44 @@ export function countQuoteHits(blocks, quote) {
   });
   return { count, blockIndex };
 }
+
+/**
+ * 边注锚归属 + 树形导轨（M9.6）：note 块 → 锚块下标。行内锚（quote 空）扫
+ * p/essay 文本按 id 直配（textDirective 层面生效，不限段落）；引用式走
+ * countQuoteHits 同一检索，唯一命中才算配对——多命中歧义按失配，与 strict
+ * 判定同构。导轨只画「紧跟锚块之后的连续边注组」：组前块即锚段（组内任一
+ * 注锚到它）；锚到别处的注 rail='none' 仅缩进不画线（被 ↑↓ 挪离锚段同理），
+ * 避免连接线误导从属。miss = 失配（渲染/保存会报错，列表同步标红）。
+ */
+export function noteRails(blocks) {
+  const anchorOf = (note) => {
+    if (note.quote) {
+      const { count, blockIndex } = countQuoteHits(blocks, note.quote);
+      return count === 1 ? blockIndex : -1;
+    }
+    const re = new RegExp(`:note-m\\[[^\\]]*\\]\\{#${note.id}\\}`);
+    return blocks.findIndex((x) => (x.type === 'p' || x.type === 'essay') && re.test(x.text ?? ''));
+  };
+  const rails = new Array(blocks.length).fill(null);
+  for (let i = 0; i < blocks.length; i++) {
+    if (blocks[i].type !== 'note') continue;
+    const start = i;
+    while (i < blocks.length && blocks[i].type === 'note') i++;
+    const anchors = [];
+    for (let k = start; k < i; k++) anchors.push(anchorOf(blocks[k]));
+    const runAnchor = anchors.includes(start - 1) ? start - 1 : -2;
+    let last = -1;
+    anchors.forEach((a, n) => {
+      if (a === runAnchor) last = n;
+    });
+    anchors.forEach((a, n) => {
+      rails[start + n] = {
+        anchor: a,
+        rail: a === runAnchor ? (n === last ? 'end' : 'through') : 'none',
+        miss: a === -1,
+      };
+    });
+    i--; // 外层 for 会 ++，回退到组尾让后续块照常处理
+  }
+  return rails;
+}

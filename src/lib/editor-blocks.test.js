@@ -4,6 +4,7 @@ import {
   countQuoteHits,
   inlineToText,
   nextNoteId,
+  noteRails,
   normalizeQuote,
   parseBlocks,
   parseDoc,
@@ -96,5 +97,72 @@ describe('M9 块模型：边注 id 与引用命中', () => {
 
   it('normalizeQuote 空白折叠', () => {
     expect(normalizeQuote('  a\n\t b   c \n')).toBe('a b c');
+  });
+});
+
+describe('M9.6 树形导轨：noteRails 锚归属', () => {
+  it('一段四注（行内锚同段）：前三条 through、末条 end，非注块为 null', () => {
+    const blocks = parseBlocks(
+      [
+        '段有 :note-m[甲]{#n1}:note-m[乙]{#n2}:note-m[丙]{#n3}:note-m[丁]{#n4} 四锚。',
+        '',
+        ':::note-m{#n1}', '一', ':::',
+        '',
+        ':::note-m{#n2}', '二', ':::',
+        '',
+        ':::note-m{#n3}', '三', ':::',
+        '',
+        ':::note-m{#n4}', '四', ':::',
+      ].join('\n'),
+    );
+    const rails = noteRails(blocks);
+    expect(blocks.map((b) => b.type)).toEqual(['p', 'note', 'note', 'note', 'note']);
+    expect(rails[0]).toBe(null);
+    rails.slice(1).forEach((r) => expect(r.anchor).toBe(0));
+    expect(rails.slice(1).map((r) => r.rail)).toEqual(['through', 'through', 'through', 'end']);
+    expect(rails.slice(1).every((r) => !r.miss)).toBe(true);
+  });
+
+  it('引用式：紧跟锚段唯一命中画线；隔块命中仍锚定不画；歧义失配', () => {
+    const uniq = parseBlocks('甲有目标词。\n\n:::note-m{#n1}\n> 目标词\n\nb\n:::');
+    expect(noteRails(uniq)[1]).toEqual({ anchor: 0, rail: 'end', miss: false });
+    const apart = parseBlocks('甲有目标词。\n\n乙段。\n\n:::note-m{#n1}\n> 目标词\n\nb\n:::');
+    expect(noteRails(apart)[2]).toEqual({ anchor: 0, rail: 'none', miss: false });
+    const amb = parseBlocks('甲有目标词。\n\n乙也有目标词。\n\n:::note-m{#n1}\n> 目标词\n\nb\n:::');
+    expect(noteRails(amb)[2]).toEqual({ anchor: -1, rail: 'none', miss: true });
+  });
+
+  it('边注被挪离锚段（中间隔了标题）：仍锚定但不画线', () => {
+    const blocks = parseBlocks('段有 :note-m[甲]{#n1} 锚。\n\n## 标题\n\n:::note-m{#n1}\nb\n:::');
+    expect(noteRails(blocks)[2]).toEqual({ anchor: 0, rail: 'none', miss: false });
+  });
+
+  it('连续组里组前块即锚段：锚到别处的组员仅缩进不画线', () => {
+    const blocks = parseBlocks(
+      [
+        '甲有 :note-m[甲]{#n1} 锚。',
+        '',
+        ':::note-m{#n1}', '一', ':::',
+        '',
+        ':::note-m{#n2}', '> 乙文', '', '二', ':::',
+        '',
+        '乙文。',
+      ].join('\n'),
+    );
+    expect(blocks.map((b) => b.type)).toEqual(['p', 'note', 'note', 'p']);
+    expect(noteRails(blocks)[1]).toEqual({ anchor: 0, rail: 'end', miss: false });
+    expect(noteRails(blocks)[2]).toEqual({ anchor: 3, rail: 'none', miss: false });
+  });
+
+  it('essay 行内锚可配对；引用串不检索 essay（与构建检索空间一致）', () => {
+    const inline = parseBlocks(':::essay\n随笔 :note-m[e]{#n1}\n:::\n\n:::note-m{#n1}\nb\n:::');
+    expect(noteRails(inline)[1]).toEqual({ anchor: 0, rail: 'end', miss: false });
+    const quoted = parseBlocks(':::essay\n目标词\n:::\n\n:::note-m{#n2}\n> 目标词\n\nb\n:::');
+    expect(noteRails(quoted)[1]).toEqual({ anchor: -1, rail: 'none', miss: true });
+  });
+
+  it('空引用且无行内锚 = 失配', () => {
+    const blocks = parseBlocks('段。\n\n:::note-m{#n9}\nb\n:::');
+    expect(noteRails(blocks)[1]).toEqual({ anchor: -1, rail: 'none', miss: true });
   });
 });
