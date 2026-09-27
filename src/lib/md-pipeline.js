@@ -11,14 +11,22 @@ import { visit } from 'unist-util-visit';
 import { createMarkdownProcessor } from '@astrojs/markdown-remark';
 import { remarkNoteMode } from '../plugins/notes.js';
 import { remarkOrig } from '../plugins/orig.js';
+import { remarkDirectiveGuard } from '../plugins/directive-guard.js';
 import { remarkSoftBreak } from '../plugins/soft-break.js';
 import { rehypeNoteSegment } from '../plugins/segment.js';
 import { rehypeImages } from '../plugins/images.js';
 import { isRelativeImageRef } from './import-assets.js';
 
 // 与构建完全同序（astro.config 消费同一数组）；strict：失配/歧义/重复 id 即 fail。
-// remarkSoftBreak 必须居末：orig 的纯文字校验先于 break 节点注入（见该插件头注）
-export const mdRemarkPlugins = [remarkDirective, remarkNoteMode, [remarkOrig, { strict: true }], remarkSoftBreak];
+// remarkSoftBreak 必须居末：orig 的纯文字校验先于 break 节点注入（见该插件头注）；
+// directive-guard 居 orig 后（语义指令已置 hName，漏网的 `9:11`/`arXiv:1706` 类误伤还原文本）
+export const mdRemarkPlugins = [
+  remarkDirective,
+  remarkNoteMode,
+  [remarkOrig, { strict: true }],
+  remarkDirectiveGuard,
+  remarkSoftBreak,
+];
 export const mdRehypePlugins = [
   [rehypeNoteSegment, { strict: true }],
   rehypeImages, // M8 末位：尺寸回填防 CLS + 独图段落 figure 化
@@ -45,7 +53,8 @@ export function collectRemarkProblems(content, filePath, frontmatter = {}) {
     .use(remarkDirective)
     .use(remarkNoteMode)
     .use(remarkOrig, { strict: true })
-    .use(remarkSoftBreak); // 与 mdRemarkPlugins 同序（拆分不产生 problem，仅为同源一致）
+    .use(remarkDirectiveGuard)
+    .use(remarkSoftBreak); // 与 mdRemarkPlugins 同序（拆分/还原不产生 problem，仅为同源一致）
   try {
     processor.runSync(processor.parse(content), vfile);
   } catch (error) {
