@@ -124,6 +124,24 @@ describe('segmentParagraph', () => {
     expect(children[0].children[1].tagName).toBe('strong');
     expect(children[1]).toEqual(t('丁'));
   });
+
+  it('零宽行内元素（软换行 <br>，M9.4）分段时原样保留，不被游标吞掉', () => {
+    const flat = (n) => (n.type === 'text' ? n.value : (n.children ?? []).map(flat).join(''));
+    const hasTag = (n, tag) =>
+      n.type === 'element' && (n.tagName === tag || (n.children ?? []).some((c) => hasTag(c, tag)));
+
+    // 根层：n4 覆盖 甲乙，br 夹在两个文本节点之间
+    const p = el('p', [t('甲乙 '), el('br', []), t('丙丁')]);
+    const children = segmentParagraph(p, [{ start: 0, end: 2, id: 'n4' }]);
+    expect(children.map(flat).join('')).toBe('甲乙 丙丁');
+    expect(children.some((c) => hasTag(c, 'br'))).toBe(true);
+
+    // 行内元素内部：切点落进 em 时其内的 br 也要保留
+    const p2 = el('p', [t('甲'), el('em', [t('乙 '), el('br', []), t('丙')]), t('丁')]);
+    const children2 = segmentParagraph(p2, [{ start: 0, end: 2, id: 'n4' }]);
+    expect(children2.map(flat).join('')).toBe('甲乙 丙丁');
+    expect(children2.some((c) => hasTag(c, 'br'))).toBe(true);
+  });
 });
 
 describe('rehypeNoteSegment：预览回填（M4 折叠条数据源）', () => {

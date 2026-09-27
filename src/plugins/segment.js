@@ -126,8 +126,9 @@ export function segmentParagraph(p, ranges, { onWarn } = {}) {
     return { type: 'text', value: node.value.slice(rawS, rawE).replace(/\s+/g, ' ') };
   };
 
-  const isEmpty = (piece) =>
-    !piece || (piece.type === 'text' ? piece.value === '' : piece.children.length === 0);
+  // 仅空文本视为空内容：零宽行内元素（<br> 等空 children 元素）是合法输出，
+  // 不能丢——而长度 >0 的元素与基本段相交必然贡献字符，不会产出空克隆
+  const isEmpty = (piece) => !piece || (piece.type === 'text' && piece.value === '');
 
   // 追加 + 相邻文本节点归并（跨基本段的切片拼回连续文本）
   const pushCoalesced = (arr, piece) => {
@@ -176,6 +177,13 @@ export function segmentParagraph(p, ranges, { onWarn } = {}) {
       while (pos < segEnd && ci < el.children.length) {
         const child = el.children[ci];
         const cend = off + lenOf.get(child);
+        if (cend === off) {
+          // 零宽行内元素（如软换行 <br>）：不占检索空间，原样归入当前基本段
+          // （不走 pushCoalesced——它会把空 children 元素当空内容丢弃）
+          clone.children.push(child);
+          ci++;
+          continue;
+        }
         const takeS = Math.max(pos, off);
         const takeE = Math.min(segEnd, cend);
         if (takeE > takeS) {
@@ -209,6 +217,11 @@ export function segmentParagraph(p, ranges, { onWarn } = {}) {
     while (pos < cell.end && ci < p.children.length) {
       const child = p.children[ci];
       const cend = off + lenOf.get(child);
+      if (cend === off) {
+        group.push(child); // 零宽行内元素（如 <br>）原样保留：不占检索空间，勿经 pushCoalesced（会判空丢弃）
+        ci++;
+        continue;
+      }
       const takeS = Math.max(pos, off);
       const takeE = Math.min(cell.end, cend);
       if (takeE > takeS) {

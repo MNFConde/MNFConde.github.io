@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { collectImageProblems } from './md-pipeline.js';
+import { collectImageProblems, renderMarkdown } from './md-pipeline.js';
 
 const P = 'src/content/notes/t.md';
 
@@ -34,5 +34,18 @@ describe('collectImageProblems：禁止相对图片引用（26-09-27 事故门�
 
   it('带 title 的相对引用仍被识别', () => {
     expect(collectImageProblems('![a](images/a.png "图注")', P)).toHaveLength(1);
+  });
+});
+
+describe('remarkSoftBreak：软换行渲染为 <br>（M9.4）', () => {
+  it('无空行连续两行渲染为 <br>，行尾空格保留（边注检索空间不变）', async () => {
+    const html = await renderMarkdown('第一行\n第二行');
+    expect(html).toContain('第一行 <br>'); // br 后的 \n 是 remark-rehype 的序列化产物，视觉无差
+  }, 60_000);
+
+  it('跨折行的边注引用串仍命中（空格进入段落规范化文本）', async () => {
+    const md = ['前半句，\n后半句。', '', ':::note-m{#n1}', '> 前半句， 后半句', '', '注解正文', ':::'].join('\n');
+    const html = await renderMarkdown(md);
+    expect(html).toContain('data-notes="n1"');
   });
 });
